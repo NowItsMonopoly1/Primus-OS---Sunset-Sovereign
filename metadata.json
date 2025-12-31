@@ -1,0 +1,8 @@
+{
+  "name": "The Sunset Protocol - Legacy Monetization",
+  "description": "An enterprise-grade platform for the senior broker. Turn your book of business into an autonomous annuity with our Bird Dog and Butler protocols.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
