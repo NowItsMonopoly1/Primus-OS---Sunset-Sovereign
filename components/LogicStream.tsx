@@ -41,7 +41,7 @@ const LogicStream: React.FC<LogicStreamProps> = ({ analysis, onClose }) => {
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center space-x-2 text-gold">
             <Cpu className="w-5 h-5 animate-pulse" />
-            <span className="text-[10px] uppercase tracking-wider font-bold italic">Bird Dog Logic Core</span>
+            <span className="text-base uppercase tracking-wider font-bold italic">Strategic Analysis Core</span>
           </div>
           <button onClick={onClose} className="text-white/20 hover:text-white transition-colors">
             <X className="w-5 h-5" />

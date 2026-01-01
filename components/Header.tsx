@@ -14,11 +14,10 @@ const Header: React.FC = () => {
   }, []);
 
   const navItems = [
-    { label: 'The Ledger', path: '/dashboard', icon: <LayoutGrid className="w-3 h-3" /> },
-    { label: 'Successor Bridge', path: '/bridge', icon: <ArrowLeftRight className="w-3 h-3" /> },
-    { label: 'Prospectus', path: '/pricing', icon: <Landmark className="w-3 h-3" /> },
-    { label: 'Vault', path: '/security', icon: <Shield className="w-3 h-3" /> },
-    { label: 'Risk Audit', path: '/crisis', icon: <AlertTriangle className="w-3 h-3" /> },
+    { label: 'File', path: '/', icon: <LayoutGrid className="w-4 h-4" /> },
+    { label: 'Ledger', path: '/dashboard', icon: <LayoutGrid className="w-4 h-4" /> },
+    { label: 'Strategy', path: '/platform', icon: <ArrowLeftRight className="w-4 h-4" /> },
+    { label: 'Vault', path: '/security', icon: <Shield className="w-4 h-4" /> },
   ];
 
   return (
@@ -34,8 +33,8 @@ const Header: React.FC = () => {
               <span className="text-gold text-sm font-black tracking-tighter relative z-10 group-hover:text-white transition-colors italic">S</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-black tracking-[0.2em] text-white leading-none uppercase italic">SUNSET</span>
-              <span className="text-[7px] font-mono text-gold/40 tracking-[0.4em] uppercase mt-1">Sovereign Standard</span>
+              <span className="text-xl font-black tracking-[0.2em] text-white leading-none uppercase italic">SUNSET</span>
+              <span className="text-sm font-mono text-gold/40 tracking-[0.4em] uppercase mt-1">Sovereign Standard</span>
             </div>
           </Link>
 
@@ -44,7 +43,7 @@ const Header: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-2 text-[9px] font-bold tracking-[0.3em] uppercase transition-all hover:text-white ${
+                className={`flex items-center space-x-2 text-base font-bold tracking-[0.3em] uppercase transition-all hover:text-white ${
                   location.pathname === item.path ? 'text-gold' : 'text-white/30'
                 }`}
               >

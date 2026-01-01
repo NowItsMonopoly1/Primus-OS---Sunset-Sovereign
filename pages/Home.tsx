@@ -32,11 +32,11 @@ const Home: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-10">
             <button 
               onClick={() => navigate('/onboarding')}
-              className="btn-primary px-20 py-7 text-[10px] shadow-[0_0_60px_rgba(212,175,55,0.2)] hover:scale-105 transition-transform italic"
+              className="btn-primary px-20 py-7 text-base shadow-[0_0_60px_rgba(212,175,55,0.2)] hover:scale-105 transition-transform italic"
             >
               Deploy for Enterprise
             </button>
-            <Link to="/crisis" className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30 hover:text-white transition-all border-b border-gold/20 pb-2 italic">
+            <Link to="/crisis" className="text-base font-bold uppercase tracking-[0.4em] text-white/30 hover:text-white transition-all border-b border-gold/20 pb-2 italic">
               View Succession Crisis Report &rarr;
             </Link>
           </div>

@@ -147,7 +147,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                 className="hover:bg-gold/[0.04] transition-colors cursor-pointer group border-b border-white/[0.02]"
               >
                 <td className="border-r border-white/5 text-center text-white/5 bg-white/[0.01] font-sans font-bold italic py-2">{index + 1}</td>
-                <td className="border-r border-white/5 px-6 py-2 text-white/90 font-black uppercase tracking-tighter italic text-[11px] group-hover:text-white transition-colors">{row.name}</td>
+                <td className="border-r border-white/5 px-6 py-2 text-white/90 font-black uppercase tracking-tighter italic text-base group-hover:text-white transition-colors">{row.name}</td>
                 <td className="border-r border-white/5 px-6 py-2 text-white/20 italic text-[9px]">{row.lastContact}</td>
                 <td className="border-r border-white/5 px-6 py-2">
                   <div className="flex items-center space-x-2">

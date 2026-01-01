@@ -38,11 +38,11 @@ const ContinuityCalculator: React.FC = () => {
             </div>
             <div>
                 <h3 className="font-serif text-2xl font-black text-white uppercase italic tracking-tighter">The Continuity Audit</h3>
-                <p className="text-gold font-mono text-[9px] uppercase tracking-[0.4em] italic font-bold">Quantify Your Sovereign Exit Cost</p>
+                <p className="text-gold font-mono text-base uppercase tracking-[0.4em] italic font-bold">Quantify Your Sovereign Exit Cost</p>
             </div>
         </div>
         <div className="flex flex-col items-end">
-           <span className="text-[10px] text-white/20 uppercase tracking-widest font-bold italic mb-1">Status: Calculation Engine Active</span>
+           <span className="text-base text-white/20 uppercase tracking-widest font-bold italic mb-1">Status: Calculation Engine Active</span>
            <div className="flex items-center space-x-2">
               <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-xs text-white/40 font-mono italic">Fidelity: Institutional</span>
