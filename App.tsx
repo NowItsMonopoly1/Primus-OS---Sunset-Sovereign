@@ -24,6 +24,7 @@ const ContinuitySignalsPage = lazy(() => import('./src/pages/ContinuitySignalsPa
 const DraftComposerPage = lazy(() => import('./src/pages/DraftComposerPage'));
 const Strategy = lazy(() => import('./src/pages/Strategy'));
 const Outcomes = lazy(() => import('./src/pages/Outcomes'));
+const Vault = lazy(() => import('./src/pages/Vault'));
 const ComingSoon = lazy(() => import('./src/components/ComingSoon'));
 
 const ScrollToTop = () => {
@@ -63,7 +64,8 @@ const App: React.FC = () => {
               <Route path="/briefing" element={<StrategicBriefing />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/bridge" element={<SuccessorBridge />} />
-              <Route path="/security" element={<ComingSoon />} />
+              <Route path="/vault" element={<Vault />} />
+              <Route path="/security" element={<Vault />} />
               <Route path="/continuity-signals" element={<ContinuitySignalsPage />} />
               <Route path="/approvals" element={<ApprovalsPage />} />
               <Route path="/compose/:id" element={<DraftComposerPage />} />
