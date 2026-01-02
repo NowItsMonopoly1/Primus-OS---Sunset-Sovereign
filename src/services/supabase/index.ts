@@ -4,3 +4,4 @@
 export * from './relationships';
 export * from './signals';
 export * from './baselines';
+export * from './governance';

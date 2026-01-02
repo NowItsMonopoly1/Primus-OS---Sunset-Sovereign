@@ -1,8 +1,17 @@
 // src/pages/ApprovalsPage.tsx
 // Approval Batch page for PRIMUS OS Continuity System
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckSquare, Archive, ShieldCheck, CheckCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  getPendingDrafts, 
+  approveDraft, 
+  createBatch, 
+  approveBatch,
+  OutreachDraft 
+} from '../services/supabase/governance';
+import { getRelationships } from '../services/supabase/relationships';
 
 interface ApprovalDraft {
   id: string;
@@ -12,6 +21,7 @@ interface ApprovalDraft {
   risk: 'Low' | 'Medium' | 'High';
   value: string;
   submitted: string;
+  rawDraft: OutreachDraft;
 }
 
 // Demo data for approvals - tells a story of proactive outreach
@@ -46,9 +56,58 @@ const INITIAL_DRAFTS: ApprovalDraft[] = [
 ];
 
 const ApprovalsPage: React.FC = () => {
-  const [drafts, setDrafts] = useState<ApprovalDraft[]>(INITIAL_DRAFTS);
+  const [drafts, setDrafts] = useState<ApprovalDraft[]>([]);
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [selectedDrafts, setSelectedDrafts] = useState<string[]>([]);
+  const [approving, setApproving] = useState(false);
+  const { user } = useAuth();
+
+  // Load pending drafts from database
+  useEffect(() => {
+    const loadDrafts = async () => {
+      setLoading(true);
+      
+      const { data: draftsData } = await getPendingDrafts();
+      const { data: relationshipsData } = await getRelationships();
+      
+      if (draftsData && relationshipsData) {
+        // Transform database drafts to display format
+        const displayDrafts: ApprovalDraft[] = draftsData.map(draft => {
+          const relationship = relationshipsData.find(r => r.id === draft.relationshipId);
+          
+          return {
+            id: draft.id,
+            client: relationship?.displayName || 'Unknown Client',
+            contact: relationship?.roleOrSegment || 'Unknown Contact',
+            action: draft.subject,
+            risk: relationship?.isFounderDependent ? 'High' : 'Low',
+            value: relationship?.annualRevenue ? `$${(relationship.annualRevenue / 1000000).toFixed(1)}M` : 'N/A',
+            submitted: getTimeAgo(draft.createdAt),
+            rawDraft: draft,
+          };
+        });
+        
+        setDrafts(displayDrafts);
+      }
+      
+      setLoading(false);
+    };
+
+    loadDrafts();
+  }, []);
+
+  const getTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+    
+    if (diffHrs < 1) return 'Just now';
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    const diffDays = Math.floor(diffHrs / 24);
+    return `${diffDays}d ago`;
+  };
 
   const handleSelectDraft = (id: string) => {
     setSelectedDrafts(prev =>
@@ -64,29 +123,69 @@ const ApprovalsPage: React.FC = () => {
     }
   };
 
-  const approveDraft = (id: string) => {
-    const draft = drafts.find(d => d.id === id);
-    setDrafts(drafts.filter(d => d.id !== id));
-    setToast(`✓ ${draft?.client} outreach approved`);
-    setSelectedDrafts(prev => prev.filter(d => d !== id));
+  const handleApproveDraft = async (id: string) => {
+    if (!user) return;
+    
+    setApproving(true);
+    const { error } = await approveDraft(id, user.id);
+    
+    if (error) {
+      setToast(`❌ Failed to approve draft`);
+    } else {
+      const draft = drafts.find(d => d.id === id);
+      setDrafts(drafts.filter(d => d.id !== id));
+      setToast(`✓ ${draft?.client} outreach approved`);
+      setSelectedDrafts(prev => prev.filter(d => d !== id));
+    }
+    
+    setApproving(false);
     setTimeout(() => setToast(null), 3000);
   };
 
-  const approveSelected = () => {
+  const approveSelected = async () => {
+    if (!user || selectedDrafts.length === 0) return;
+    
+    setApproving(true);
     const count = selectedDrafts.length;
+    
+    // Create a batch and approve all drafts
+    const batchName = `Approval Batch ${new Date().toLocaleString()}`;
+    const { data: batch } = await createBatch(
+      {
+        label: batchName,
+        createdBy: user.id,
+        draftIds: selectedDrafts,
+      },
+      user.firmId
+    );
+    
+    if (batch) {
+      await approveBatch(batch.id, user.id);
+      setDrafts(drafts.filter(d => !selectedDrafts.includes(d.id)));
+      setToast(`✓ ${count} draft${count > 1 ? 's' : ''} approved`);
+      setSelectedDrafts([]);
+    } else {
+      setToast(`❌ Failed to approve batch`);
+    }
+    
+    setApproving(false);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleArchive = async () => {
     setDrafts(drafts.filter(d => !selectedDrafts.includes(d.id)));
-    setToast(`✓ ${count} draft${count > 1 ? 's' : ''} approved`);
+    setToast(`Archived ${selectedDrafts.length} draft${selectedDrafts.length > 1 ? 's' : ''}`);
     setSelectedDrafts([]);
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleArchive = () => {
-    const count = selectedDrafts.length;
-    setDrafts(drafts.filter(d => !selectedDrafts.includes(d.id)));
-    setToast(`Archived ${count} draft${count > 1 ? 's' : ''}`);
-    setSelectedDrafts([]);
-    setTimeout(() => setToast(null), 3000);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-primus-bg flex items-center justify-center">
+        <div className="text-primus-text">Loading approvals...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-primus-bg text-primus-text p-8 relative">
@@ -192,10 +291,11 @@ const ApprovalsPage: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-primus-slate">{draft.submitted}</td>
                       <td className="px-6 py-4 text-right">
                         <button
-                          onClick={() => approveDraft(draft.id)}
-                          className="px-3 py-1 bg-primus-gold text-black rounded text-xs font-medium hover:bg-primus-gold/90 transition-all"
+                          onClick={() => handleApproveDraft(draft.id)}
+                          disabled={approving}
+                          className="px-3 py-1 bg-primus-gold text-black rounded text-xs font-medium hover:bg-primus-gold/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Approve
+                          {approving ? 'Approving...' : 'Approve'}
                         </button>
                       </td>
                     </tr>

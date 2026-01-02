@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingDown, Shield, DollarSign, Users, Clock, AlertTriangle, Save, Download } from 'lucide-react';
+import { TrendingDown, Shield, DollarSign, Users, Clock, AlertTriangle, Save, Download, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   createBaseline, 
@@ -8,6 +8,7 @@ import {
   getLatestBaseline,
   BaselineReport 
 } from '../services/supabase/baselines';
+import { exportBaselineToPDF } from '../services/export';
 
 type Scenario = 'unmanaged' | 'protected';
 
@@ -151,7 +152,14 @@ const Outcomes = () => {
       setSaving(false);
     }
   };
-
+  // Export baseline to PDF
+  const handleExportPDF = () => {
+    if (!savedBaseline) {
+      alert('Please save the baseline first');
+      return;
+    }
+    exportBaselineToPDF(savedBaseline);
+  };
   return (
     <div className="min-h-screen bg-[#1A1F24] text-[#E6E8EB] p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -162,14 +170,26 @@ const Outcomes = () => {
               <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-[#C6A45E]" />
               Continuity Outcome Engine
             </h1>
-            <p className="text-[#B4BAC2] text-sm">
-              What happens to your life's work if you do nothing?
-            </p>
-          </div>
-          
-          {/* Save Baseline Button */}
-          {user?.role === 'FOUNDER' && (
-            <button
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveBaseline}
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 bg-[#C6A45E] hover:bg-[#D4B36A] text-[#1A1F24] font-semibold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-4 h-4" />
+                {saving ? 'Saving...' : savedBaseline ? 'Update Baseline' : 'Save Baseline'}
+              </button>
+              
+              {savedBaseline && (
+                <button
+                  onClick={handleExportPDF}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#353C45] hover:bg-[#454D56] text-[#E6E8EB] font-semibold rounded transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  Export PDF
+                </button>
+              )}
+            </div
               onClick={handleSaveBaseline}
               disabled={saving}
               className="flex items-center gap-2 px-4 py-2 bg-[#C6A45E] hover:bg-[#D4B36A] text-[#1A1F24] font-semibold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

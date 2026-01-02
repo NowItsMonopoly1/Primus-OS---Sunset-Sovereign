@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Download } from 'lucide-react';
 import { TopBar } from '../../components/layout/TopBar';
 import { ContinuityLedgerTable } from '../../components/ledger/ContinuityLedgerTable';
 import { DecisionRationalePanel } from '../../components/panels/DecisionRationalePanel';
 import { RelationshipRecord, DecisionRationale } from '../../types/ledger';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRelationships } from '../../services/supabase/relationships';
+import { exportRelationshipsToCSV } from '../../services/export';
 
 interface ContinuityLedgerPageProps {
   onPrepareDraft?: (relationshipId: string) => void;
@@ -21,6 +23,7 @@ export const ContinuityLedgerPage: React.FC<ContinuityLedgerPageProps> = ({
 }) => {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [relationships, setRelationships] = useState<RelationshipRecord[]>([]);
+  const [rawRelationships, setRawRelationships] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -37,7 +40,11 @@ export const ContinuityLedgerPage: React.FC<ContinuityLedgerPageProps> = ({
         console.error('Error loading relationships:', error);
         setError('Failed to load relationships');
         setRelationships([]);
+        setRawRelationships([]);
       } else {
+        // Store raw data for export
+        setRawRelationships(data || []);
+        
         // Transform Supabase data to ledger format
         const records: RelationshipRecord[] = (data || []).map(rel => ({
           id: rel.id,
@@ -57,6 +64,15 @@ export const ContinuityLedgerPage: React.FC<ContinuityLedgerPageProps> = ({
 
     loadRelationships();
   }, []);
+
+  // Export to CSV
+  const handleExport = () => {
+    if (rawRelationships.length === 0) {
+      alert('No data to export');
+      return;
+    }
+    exportRelationshipsToCSV(rawRelationships);
+  };
 
   // TODO: Load rationale data from database
   const selectedRationale: DecisionRationale | null = null;
@@ -82,6 +98,18 @@ export const ContinuityLedgerPage: React.FC<ContinuityLedgerPageProps> = ({
       <TopBar showGovernanceMode governanceModeActive />
 
       <div className="p-page">
+        {/* Export Button */}
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={handleExport}
+            disabled={loading || relationships.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-[#C6A45E] hover:bg-[#D4B36A] text-[#1A1F24] font-semibold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
+        
         <div className="flex gap-6">
           {/* Left: Continuity Ledger Table (70%) */}
           <div className="flex-1" style={{ flexBasis: '70%' }}>
