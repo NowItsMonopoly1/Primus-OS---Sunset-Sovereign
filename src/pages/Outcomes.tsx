@@ -77,8 +77,8 @@ const Outcomes = () => {
   };
 
   const unmanaged = calculateUnmanaged();
-  const protected = calculateProtected();
-  const delta = protected.totalRevenue - unmanaged.totalRevenue;
+  const primusProtected = calculateProtected();
+  const delta = primusProtected.totalRevenue - unmanaged.totalRevenue;
 
   const format = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
   const formatMonthly = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n / 12);
@@ -217,7 +217,7 @@ const Outcomes = () => {
               <div>
                 <div className="text-xs text-[#7A828C] uppercase mb-1">Total Revenue ({timeHorizon}-Year)</div>
                 <div className="text-3xl font-mono font-bold text-[#4A9E88]">
-                  {format(protected.totalRevenue)}
+                  {format(primusProtected.totalRevenue)}
                 </div>
               </div>
 
@@ -225,10 +225,10 @@ const Outcomes = () => {
               <div>
                 <div className="text-xs text-[#7A828C] uppercase mb-1">Book Value Decay</div>
                 <div className="text-2xl font-mono font-bold text-[#E6E8EB] mb-1">
-                  -{format(protected.totalDecay)}
+                  -{format(primusProtected.totalDecay)}
                 </div>
                 <div className="text-xs text-[#4A9E88]">
-                  Only {protected.decayPercentage.toFixed(0)}% decay with continuity
+                  Only {primusProtected.decayPercentage.toFixed(0)}% decay with continuity
                 </div>
               </div>
 
@@ -236,10 +236,10 @@ const Outcomes = () => {
               <div className="bg-[#C6A45E]/10 border-2 border-[#C6A45E] p-4 rounded">
                 <div className="text-xs text-[#C6A45E] uppercase mb-1 font-bold">Terminal Income (After Exit)</div>
                 <div className="text-2xl font-mono font-bold text-[#C6A45E]">
-                  {formatMonthly(protected.terminalIncome)} / month
+                  {formatMonthly(primusProtected.terminalIncome)} / month
                 </div>
                 <div className="text-xs text-[#4A9E88] mt-2">
-                  {format(protected.terminalIncome)}/yr for {protected.sunsetDuration} years
+                  {format(primusProtected.terminalIncome)}/yr for {primusProtected.sunsetDuration} years
                 </div>
               </div>
 
@@ -280,21 +280,21 @@ const Outcomes = () => {
             <div className="bg-[#1A1F24] border border-[#353C45] rounded p-4 text-center">
               <div className="text-xs text-[#7A828C] uppercase mb-1">Monthly Sunset Income</div>
               <div className="text-xl font-mono font-bold text-[#4A9E88]">
-                {formatMonthly(protected.terminalIncome)}
-              </div>
-              <div className="text-xs text-[#B4BAC2] mt-1">for {protected.sunsetDuration} years after exit</div>
+                  {formatMonthly(primusProtected.terminalIncome)}
+                </div>
+                <div className="text-xs text-[#B4BAC2] mt-1">for {primusProtected.sunsetDuration} years after exit</div>
             </div>
             <div className="bg-[#1A1F24] border border-[#353C45] rounded p-4 text-center">
               <div className="text-xs text-[#7A828C] uppercase mb-1">Book Preservation</div>
               <div className="text-xl font-mono font-bold text-[#4A9E88]">
-                {(100 - protected.decayPercentage).toFixed(0)}%
+                  {(100 - primusProtected.decayPercentage).toFixed(0)}%
               </div>
               <div className="text-xs text-[#B4BAC2] mt-1">vs {(100 - unmanaged.decayPercentage).toFixed(0)}% unmanaged</div>
             </div>
             <div className="bg-[#1A1F24] border border-[#353C45] rounded p-4 text-center">
               <div className="text-xs text-[#7A828C] uppercase mb-1">Career Legacy Value</div>
               <div className="text-xl font-mono font-bold text-[#4A9E88]">
-                {format(protected.terminalIncome * protected.sunsetDuration)}
+                  {format(primusProtected.terminalIncome * primusProtected.sunsetDuration)}
               </div>
               <div className="text-xs text-[#B4BAC2] mt-1">total sunset earnings</div>
             </div>
@@ -312,7 +312,7 @@ const Outcomes = () => {
               <span className="text-[#B55A4A] font-semibold">Without continuity infrastructure:</span> That book decays at 20% annually. Your income ends when you stop working. Your relationships scatter. Your referral network dies.
             </p>
             <p>
-              <span className="text-[#4A9E88] font-semibold">With Primus Protection:</span> Decay drops to 5%. Relationships transfer to designated successors. You retain {formatMonthly(protected.terminalIncome)}/month for {protected.sunsetDuration} years after exit. Your life's work survives your retirement.
+              <span className="text-[#4A9E88] font-semibold">With Primus Protection:</span> Decay drops to 5%. Relationships transfer to designated successors. You retain {formatMonthly(primusProtected.terminalIncome)}/month for {primusProtected.sunsetDuration} years after exit. Your life's work survives your retirement.
             </p>
             <p className="text-[#E6E8EB] font-semibold border-l-4 border-[#C6A45E] pl-4 mt-6">
               The difference isn't software. It's {format(delta)} and the certainty that your career means something after you're done.
