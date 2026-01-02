@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TopBar } from '../../components/layout/TopBar';
 import { ContinuityLedgerTable } from '../../components/ledger/ContinuityLedgerTable';
 import { DecisionRationalePanel } from '../../components/panels/DecisionRationalePanel';
 import { RelationshipRecord, DecisionRationale } from '../../types/ledger';
-import { sampleRelationships, sampleRationale } from '../../data/sampleLedgerData';
+import { useAuth } from '../../contexts/AuthContext';
+import { getRelationships } from '../../services/supabase/relationships';
 
 interface ContinuityLedgerPageProps {
-  // These props allow for real data integration
-  relationships?: RelationshipRecord[];
-  rationaleData?: Record<string, DecisionRationale>;
   onPrepareDraft?: (relationshipId: string) => void;
   onRecord?: (relationshipId: string) => void;
   onAddToBatch?: (relationshipId: string) => void;
@@ -16,16 +14,68 @@ interface ContinuityLedgerPageProps {
 }
 
 export const ContinuityLedgerPage: React.FC<ContinuityLedgerPageProps> = ({
-  relationships = sampleRelationships,
-  rationaleData = sampleRationale,
   onPrepareDraft = (id) => console.log('Prepare draft for:', id),
   onRecord = (id) => console.log('Record interaction for:', id),
   onAddToBatch = (id) => console.log('Add to batch:', id),
   onViewHistory = (id) => console.log('View history for:', id),
 }) => {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [relationships, setRelationships] = useState<RelationshipRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  const selectedRationale = selectedRecordId ? rationaleData[selectedRecordId] || null : null;
+  // Load relationships from database
+  useEffect(() => {
+    const loadRelationships = async () => {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error } = await getRelationships();
+      
+      if (error) {
+        console.error('Error loading relationships:', error);
+        setError('Failed to load relationships');
+        setRelationships([]);
+      } else {
+        // Transform Supabase data to ledger format
+        const records: RelationshipRecord[] = (data || []).map(rel => ({
+          id: rel.id,
+          name: rel.displayName,
+          status: rel.status,
+          role: rel.roleOrSegment,
+          continuityGrade: rel.continuityGrade,
+          valueOutlook: rel.valueOutlook || '',
+          lastInteraction: rel.lastInteractionAt ? new Date(rel.lastInteractionAt).toLocaleDateString() : 'Never',
+          prepareAction: rel.isFounderDependent ? 'High Priority' : 'Standard',
+        }));
+        setRelationships(records);
+      }
+      
+      setLoading(false);
+    };
+
+    loadRelationships();
+  }, []);
+
+  // TODO: Load rationale data from database
+  const selectedRationale: DecisionRationale | null = null;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-office-slate flex items-center justify-center">
+        <div className="text-office-text">Loading continuity ledger...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-office-slate flex items-center justify-center">
+        <div className="text-red-400">Error: {error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-office-slate">

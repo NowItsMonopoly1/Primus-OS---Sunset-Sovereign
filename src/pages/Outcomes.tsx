@@ -1,16 +1,39 @@
-import React, { useState } from 'react';
-import { TrendingDown, Shield, DollarSign, Users, Clock, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingDown, Shield, DollarSign, Users, Clock, AlertTriangle, Save, Download } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  createBaseline, 
+  updateBaseline, 
+  finalizeBaseline, 
+  getLatestBaseline,
+  BaselineReport 
+} from '../services/supabase/baselines';
 
 type Scenario = 'unmanaged' | 'protected';
 
 const Outcomes = () => {
   const [activeScenario, setActiveScenario] = useState<Scenario>('unmanaged');
   const [timeHorizon, setTimeHorizon] = useState(5); // years
+  const [savedBaseline, setSavedBaseline] = useState<BaselineReport | null>(null);
+  const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
+
+  // Load latest baseline on mount
+  useEffect(() => {
+    const loadBaseline = async () => {
+      const { data } = await getLatestBaseline();
+      if (data) {
+        setSavedBaseline(data);
+        setTimeHorizon(data.projectedYears);
+      }
+    };
+    loadBaseline();
+  }, []);
 
   // Demo data - in production, this would come from actual relationship data
-  const currentBookValue = 29200000; // $29.2M total from Dashboard relationships
-  const avgCommissionRate = 0.01; // 100 bps
-  const currentAnnualRevenue = currentBookValue * avgCommissionRate; // $292K
+  const currentBookValue = savedBaseline?.totalBookValue || 29200000; // $29.2M
+  const avgCommissionRate = savedBaseline?.avgCommissionRate || 0.01; // 100 bps
+  const currentAnnualRevenue = savedBaseline?.currentAnnualRevenue || currentBookValue * avgCommissionRate;
 
   // SCENARIO A: Walk Away (Unmanaged)
   const calculateUnmanaged = () => {
@@ -83,18 +106,78 @@ const Outcomes = () => {
   const format = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
   const formatMonthly = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n / 12);
 
+  // Save baseline to database
+  const handleSaveBaseline = async () => {
+    if (!user) return;
+    
+    setSaving(true);
+    try {
+      const baselineName = `Continuity Baseline - ${new Date().toLocaleDateString()}`;
+      
+      if (savedBaseline) {
+        // Update existing
+        await updateBaseline(savedBaseline.id, {
+          projectedYears: timeHorizon,
+          deltaRevenue: delta,
+          terminalIncomeAnnual: primusProtected.terminalIncome,
+        });
+      } else {
+        // Create new
+        const { data } = await createBaseline(
+          {
+            reportName: baselineName,
+            totalClientCount: 47, // TODO: Get from relationships count
+            totalBookValue: currentBookValue,
+            avgCommissionRate: avgCommissionRate,
+            currentAnnualRevenue: currentAnnualRevenue,
+            projectedYears: timeHorizon,
+          },
+          user.firmId,
+          user.id
+        );
+        
+        if (data) {
+          // Finalize immediately with calculated values
+          await finalizeBaseline(data.id, user.id, delta, primusProtected.terminalIncome);
+          setSavedBaseline(data);
+        }
+      }
+      
+      alert('Baseline saved successfully');
+    } catch (err) {
+      console.error('Error saving baseline:', err);
+      alert('Failed to save baseline');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#1A1F24] text-[#E6E8EB] p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
-            <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-[#C6A45E]" />
-            Continuity Outcome Engine
-          </h1>
-          <p className="text-[#B4BAC2] text-sm">
-            What happens to your life's work if you do nothing?
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
+              <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-[#C6A45E]" />
+              Continuity Outcome Engine
+            </h1>
+            <p className="text-[#B4BAC2] text-sm">
+              What happens to your life's work if you do nothing?
+            </p>
+          </div>
+          
+          {/* Save Baseline Button */}
+          {user?.role === 'FOUNDER' && (
+            <button
+              onClick={handleSaveBaseline}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-[#C6A45E] hover:bg-[#D4B36A] text-[#1A1F24] font-semibold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4" />
+              {saving ? 'Saving...' : savedBaseline ? 'Update Baseline' : 'Save Baseline'}
+            </button>
+          )}
         </div>
 
         {/* Time Horizon Selector */}

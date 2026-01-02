@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, CheckCircle, AlertTriangle, TrendingUp, Clock } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { getActiveSignals, resolveSignal, ContinuitySignal } from '../services/supabase/signals';
 
 type SignalPhase = 'all' | 'contact' | 'engagement' | 'life-stage' | 'succession';
 
@@ -160,10 +162,82 @@ const MOCK_SIGNALS: Signal[] = [
 
 const ContinuitySignalsPage = () => {
   const [activePhase, setActivePhase] = useState<SignalPhase>('all');
+  const [signals, setSignals] = useState<ContinuitySignal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Load signals from database
+  useEffect(() => {
+    const loadSignals = async () => {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error } = await getActiveSignals();
+      
+      if (error) {
+        console.error('Error loading signals:', error);
+        setError('Failed to load signals');
+        setSignals([]);
+      } else {
+        setSignals(data || []);
+      }
+      
+      setLoading(false);
+    };
+
+    loadSignals();
+  }, []);
+
+  // Map signal types to phases
+  const getPhaseFromType = (type: string): SignalPhase => {
+    if (type.includes('CONTACT') || type.includes('GAP')) return 'contact';
+    if (type.includes('ENGAGEMENT') || type.includes('DRIFT')) return 'engagement';
+    if (type.includes('LIFE') || type.includes('STAGE')) return 'life-stage';
+    if (type.includes('SUCCESSION')) return 'succession';
+    return 'all';
+  };
+
+  // Map severity to old format
+  const getSeverityType = (severity: 'GREEN' | 'YELLOW' | 'RED'): Signal['severity'] => {
+    switch (severity) {
+      case 'GREEN': return 'positive';
+      case 'YELLOW': return 'warning';
+      case 'RED': return 'critical';
+      default: return 'neutral';
+    }
+  };
+
+  // Transform signals for display
+  const displaySignals: Signal[] = signals.map(s => ({
+    id: s.id,
+    phase: getPhaseFromType(s.signalType),
+    relationshipName: s.relationshipId, // TODO: Join with relationships table to get name
+    message: s.description,
+    severity: getSeverityType(s.severity),
+    timestamp: s.triggeredAt,
+    actionRequired: s.severity === 'RED' || s.severity === 'YELLOW',
+  }));
 
   const filteredSignals = activePhase === 'all'
-    ? MOCK_SIGNALS
-    : MOCK_SIGNALS.filter(s => s.phase === activePhase);
+    ? displaySignals
+    : displaySignals.filter(s => s.phase === activePhase);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#1A1F24] flex items-center justify-center">
+        <div className="text-[#E6E8EB]">Loading continuity signals...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#1A1F24] flex items-center justify-center">
+        <div className="text-red-400">Error: {error}</div>
+      </div>
+    );
+  }
 
   const getSeverityStyle = (severity: Signal['severity']) => {
     switch (severity) {
