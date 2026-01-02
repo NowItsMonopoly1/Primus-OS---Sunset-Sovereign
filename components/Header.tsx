@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Activity, LayoutGrid, ArrowLeftRight, Landmark, AlertTriangle } from 'lucide-react';
+import { Shield, Activity, LayoutGrid, ArrowLeftRight, Landmark, AlertTriangle, ShieldCheck } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -14,9 +14,10 @@ const Header: React.FC = () => {
   }, []);
 
   const navItems = [
-    { label: 'File', path: '/', icon: <LayoutGrid className="w-4 h-4" /> },
     { label: 'Ledger', path: '/dashboard', icon: <LayoutGrid className="w-4 h-4" /> },
-    { label: 'Strategy', path: '/platform', icon: <ArrowLeftRight className="w-4 h-4" /> },
+    { label: 'Signals', path: '/continuity-signals', icon: <Activity className="w-4 h-4" /> },
+    { label: 'Governor', path: '/approvals', icon: <ShieldCheck className="w-4 h-4" /> },
+    { label: 'Strategy', path: '/strategy', icon: <ArrowLeftRight className="w-4 h-4" /> },
     { label: 'Vault', path: '/security', icon: <Shield className="w-4 h-4" /> },
   ];
 
@@ -29,12 +30,12 @@ const Header: React.FC = () => {
       <div className="max-w-[1600px] mx-auto px-10 flex items-center justify-between">
         <div className="flex items-center space-x-16">
           <Link to="/" className="flex items-center space-x-4 group">
-            <div className="relative w-7 h-7 border border-gold/40 flex items-center justify-center bg-gold/5">
-              <span className="text-gold text-sm font-black tracking-tighter relative z-10 group-hover:text-white transition-colors italic">S</span>
+            <div className="relative w-7 h-7 border border-[#C6A45E]/40 flex items-center justify-center bg-[#C6A45E]/5">
+              <span className="text-[#C6A45E] text-sm font-black tracking-tighter relative z-10 group-hover:text-white transition-colors">S</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-black tracking-[0.2em] text-white leading-none uppercase italic">SUNSET</span>
-              <span className="text-sm font-mono text-gold/40 tracking-[0.4em] uppercase mt-1">Sovereign Standard</span>
+              <span className="text-xl font-black tracking-[0.25em] text-white leading-none uppercase font-['Inter']">SOLOSCALE</span>
+              <span className="text-[9px] font-mono text-[#C6A45E]/60 tracking-[0.15em] uppercase mt-0.5">POWERED BY PRIMUS OS</span>
             </div>
           </Link>
 
@@ -58,7 +59,7 @@ const Header: React.FC = () => {
           <div className="hidden xl:flex flex-col items-end border-r border-white/5 pr-10">
             <div className="flex items-center space-x-2">
               <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-[9px] font-mono text-white/40 uppercase tracking-tighter italic">Bird Dog: Hunting</span>
+              <span className="text-[9px] font-mono text-white/40 uppercase tracking-tighter italic">Continuity: Active</span>
             </div>
           </div>
           

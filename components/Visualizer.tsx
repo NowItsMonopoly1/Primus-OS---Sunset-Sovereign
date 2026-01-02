@@ -11,7 +11,7 @@ const Visualizer: React.FC = () => {
 
     let animationFrameId: number;
     let particles: Particle[] = [];
-    const particleCount = 60;
+    const particleCount = 25; // Reduced from 60 for better performance
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -81,23 +81,26 @@ const Visualizer: React.FC = () => {
     };
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Background noise/grid hint
-      ctx.strokeStyle = 'rgba(255,255,255,0.01)';
-      ctx.lineWidth = 1;
-      for(let i = 0; i < canvas.width; i+=100) {
-         ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
-      }
-      for(let i = 0; i < canvas.height; i+=100) {
-         ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
-      }
+      // Only animate when tab is visible to save CPU
+      if (!document.hidden) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Background noise/grid hint
+        ctx.strokeStyle = 'rgba(255,255,255,0.01)';
+        ctx.lineWidth = 1;
+        for(let i = 0; i < canvas.width; i+=100) {
+           ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+        }
+        for(let i = 0; i < canvas.height; i+=100) {
+           ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+        }
 
-      particles.forEach(p => {
-        p.update();
-        p.draw();
-      });
-      drawLines();
+        particles.forEach(p => {
+          p.update();
+          p.draw();
+        });
+        drawLines();
+      }
       animationFrameId = requestAnimationFrame(animate);
     };
 

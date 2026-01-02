@@ -1,21 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import Home from './pages/Home';
-import Platform from './pages/Platform';
-import Partners from './pages/Partners';
-import Crisis from './pages/Crisis';
-import About from './pages/About';
-import Onboarding from './pages/Onboarding';
-import ShieldDeck from './pages/ShieldDeck';
-import Dashboard from './pages/Dashboard';
-import G2R from './pages/G2R';
-import StrategicBriefing from './pages/StrategicBriefing';
-import Pricing from './pages/Pricing';
-import SuccessorBridge from './pages/SuccessorBridge';
-import Security from './pages/Security';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import LoadingScreen from './components/LoadingScreen';
 import { CleanClientData } from './utils/csvIngestor';
+
+// Lazy load heavy components
+const Home = lazy(() => import('./pages/Home'));
+const Platform = lazy(() => import('./pages/Platform'));
+const Partners = lazy(() => import('./pages/Partners'));
+const Crisis = lazy(() => import('./pages/Crisis'));
+const About = lazy(() => import('./pages/About'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const ShieldDeck = lazy(() => import('./pages/ShieldDeck'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const G2R = lazy(() => import('./pages/G2R'));
+const StrategicBriefing = lazy(() => import('./pages/StrategicBriefing'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const SuccessorBridge = lazy(() => import('./pages/SuccessorBridge'));
+const Security = lazy(() => import('./pages/Security'));
+const ApprovalsPage = lazy(() => import('./src/pages/ApprovalsPage'));
+const ContinuitySignalsPage = lazy(() => import('./src/pages/ContinuitySignalsPage'));
+const DraftComposerPage = lazy(() => import('./src/pages/DraftComposerPage'));
+const Strategy = lazy(() => import('./src/pages/Strategy'));
+const Outcomes = lazy(() => import('./src/pages/Outcomes'));
+const ComingSoon = lazy(() => import('./src/components/ComingSoon'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -34,27 +43,34 @@ const App: React.FC = () => {
         <ScrollToTop />
         <Header />
         <main className="flex-grow pt-20">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/platform" element={<Platform />} />
-            <Route path="/partners" element={<Partners />} />
-            <Route path="/crisis" element={<Crisis />} />
-            <Route path="/about" element={<About />} />
-            <Route 
-              path="/onboarding" 
-              element={<Onboarding setLedgerData={setLedgerData} />} 
-            />
-            <Route path="/shield-deck" element={<ShieldDeck />} />
-            <Route 
-              path="/dashboard" 
-              element={<Dashboard data={ledgerData} />} 
-            />
-            <Route path="/g2r" element={<G2R />} />
-            <Route path="/briefing" element={<StrategicBriefing />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/bridge" element={<SuccessorBridge />} />
-            <Route path="/security" element={<Security />} />
-          </Routes>
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/platform" element={<ComingSoon />} />
+              <Route path="/partners" element={<Partners />} />
+              <Route path="/crisis" element={<Crisis />} />
+              <Route path="/about" element={<About />} />
+              <Route 
+                path="/onboarding" 
+                element={<Onboarding setLedgerData={setLedgerData} />} 
+              />
+              <Route path="/shield-deck" element={<ShieldDeck />} />
+              <Route 
+                path="/dashboard" 
+                element={<Dashboard data={ledgerData} />} 
+              />
+              <Route path="/g2r" element={<G2R />} />
+              <Route path="/briefing" element={<StrategicBriefing />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/bridge" element={<SuccessorBridge />} />
+              <Route path="/security" element={<ComingSoon />} />
+              <Route path="/continuity-signals" element={<ContinuitySignalsPage />} />
+              <Route path="/approvals" element={<ApprovalsPage />} />
+              <Route path="/compose/:id" element={<DraftComposerPage />} />
+              <Route path="/strategy" element={<Strategy />} />
+              <Route path="/outcomes" element={<Outcomes />} />
+            </Routes>
+          </Suspense>
         </main>
         <Footer />
       </div>

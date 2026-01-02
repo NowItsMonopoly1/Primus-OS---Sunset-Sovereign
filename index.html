@@ -3,7 +3,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Enhanced mobile viewport for iOS and tablets (allows pinch-to-zoom for accessibility) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- iOS Web App Capable -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Disable iOS telephone number detection -->
+    <meta name="format-detection" content="telephone=no" />
     <title>Primus | Silent Succession Standard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -86,13 +92,59 @@
       ::-webkit-scrollbar { width: 3px; }
       ::-webkit-scrollbar-track { background: var(--ghost-black); }
       ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); }
+
+      /* iOS and Mobile Optimizations */
+      * {
+        -webkit-tap-highlight-color: rgba(212, 175, 55, 0.1);
+        -webkit-touch-callout: none;
+      }
+
+      /* Prevent iOS text size adjustment */
+      html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+
+      /* Smooth scrolling for iOS */
+      body {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: none;
+      }
+
+      /* Touch-friendly buttons */
+      button, a, input[type="range"] {
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* Input focus styles for mobile */
+      input:focus, textarea:focus, select:focus {
+        outline: 2px solid var(--gold);
+        outline-offset: 2px;
+      }
+
+      /* Safe area for iPhone notch */
+      @supports (padding: max(0px)) {
+        body {
+          padding-left: max(0px, env(safe-area-inset-left));
+          padding-right: max(0px, env(safe-area-inset-right));
+        }
+      }
+
+      /* Optimize animations for mobile */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
     </style>
-  <link rel="stylesheet" href="/index.css">
-</head>
+  </head>
   <body>
     <div class="scanline"></div>
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
-  <script type="module" src="/index.tsx"></script>
-</body>
+    <script type="module" src="/index.tsx"></script>
+  </body>
 </html>

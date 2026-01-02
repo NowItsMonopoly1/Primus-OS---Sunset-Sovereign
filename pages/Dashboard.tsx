@@ -1,237 +1,381 @@
 import React, { useState, useEffect } from 'react';
-import { FileSpreadsheet, Zap, Shield, Search, Filter, Activity } from 'lucide-react';
-import LogicStream from '../components/LogicStream';
-import { analyzeLead, BirdDogAnalysis } from '../utils/birdDogEngine';
-import { CleanClientData } from '../utils/csvIngestor';
+import { useNavigate } from 'react-router-dom';
+import { FileSpreadsheet, Zap, Shield, Search, Filter, Activity, ChevronDown } from 'lucide-react';
 
 interface DashboardProps {
-  data: CleanClientData[];
+  data: any[]; // Keep for compatibility, but use relationships
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ data }) => {
-  const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
-  const [formulaValue, setFormulaValue] = useState("=BIRD_DOG_V2(\"Scan_Database\", \"Rate_Trap_Filter: ON\")");
-  const [selectedAnalysis, setSelectedAnalysis] = useState<BirdDogAnalysis | null>(null);
-  const [processedRows, setProcessedRows] = useState<any[]>([]);
-
-  const mockRows = [
-    { 
-        id: 'PR-9012', 
-        name: "Smith, John", 
-        lastContact: "2 days ago", 
-        trigger: "Rate Trap (3.1%)", 
-        aiNote: "⛔ DO NOT REFI. Locked at 3.1%. 💡 The Play: Pitch HELOC for 'Boat' purchase.", 
-        status: "HOT - CALL NOW",
-        currentRate: 3.1, 
-        ltv: 50, 
-        notes: "Wants a boat refi." 
-    },
-    { 
-        id: 'PR-8821', 
-        name: "Miller, Sarah", 
-        lastContact: "11:08 AM", 
-        trigger: "Nuance-Pivot", 
-        aiNote: "⛔ DO NOT REFI. Locked at 2.875%. 💡 Pitch HELOC for remodel.", 
-        status: "HOT",
-        currentRate: 2.875, 
-        ltv: 40, 
-        notes: "Needs $100k for kitchen remodel." 
-    },
-    { 
-        id: 'PR-7742', 
-        name: "Williams, Ted", 
-        lastContact: "12 hours ago", 
-        trigger: "Spread > 0.75%", 
-        aiNote: "🔥 Green Light. Spread 1.1%. 💰 The Play: Save ~$350/mo on Refi.", 
-        status: "WARM",
-        currentRate: 7.2, 
-        ltv: 70, 
-        notes: "High rate primary residence." 
-    }
-  ];
+  const navigate = useNavigate();
+  const [relationships, setRelationships] = useState<any[]>([]);
+  const [selectedRelationship, setSelectedRelationship] = useState<any | null>(null);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
-    const rawData = data && data.length > 0 ? data : mockRows;
-    const marketRate = 6.125;
+    // Use high-fidelity mock data for demo - tells story of risk vs stability
+    const MOCK_DATA = [
+      {
+        id: '1',
+        continuityGrade: 'AAA',
+        continuityScore: 99,
+        displayName: 'Hamilton Trust',
+        roleOrSegment: 'E. Hamilton',
+        status: 'STRONG',
+        valueOutlook: 'Secured',
+        lastInteractionAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2d ago
+        value: '$12.4M'
+      },
+      {
+        id: '2',
+        continuityGrade: 'BB',
+        continuityScore: 42,
+        displayName: 'Nexus Surgery Group',
+        roleOrSegment: 'Dr. S. Vance',
+        status: 'At Risk',
+        valueOutlook: 'Critical',
+        lastInteractionAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), // 45d ago
+        value: '$3.1M'
+      },
+      {
+        id: '3',
+        continuityGrade: 'A',
+        continuityScore: 88,
+        displayName: 'Estate of J. Rourke',
+        roleOrSegment: 'L. Rourke',
+        status: 'Monitoring',
+        valueOutlook: 'Q3 2026',
+        lastInteractionAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(), // 12d ago
+        value: '$5.5M'
+      },
+      {
+        id: '4',
+        continuityGrade: 'BBB',
+        continuityScore: 65,
+        displayName: 'Venture Partners IV',
+        roleOrSegment: 'M. Chen',
+        status: 'Drifting',
+        valueOutlook: 'Immediate',
+        lastInteractionAt: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(), // 28d ago
+        value: '$8.2M'
+      },
+    ];
 
-    const analyzed = rawData.map((client: any, i) => {
-      const analysis = analyzeLead({
-        name: client.name,
-        currentRate: client.currentRate,
-        ltv: client.ltv,
-        notes: client.notes
-      }, marketRate);
+    setRelationships(MOCK_DATA);
+    setLoading(false);
 
-      return {
-        ...client,
-        id: client.id || `PR-${9000 + i}`,
-        trigger: analysis.reasoningChain.find(s => s.status === 'blocked' || s.status === 'match')?.step || "Active Monitoring",
-        aiNote: analysis.generatedNote,
-        status: analysis.classification === 'HOT' ? "HOT - ACTION" : (analysis.classification || "NURTURING"),
-        fullAnalysis: analysis
-      };
-    });
-
-    setProcessedRows(analyzed);
-  }, [data]);
-
-  const handleRowClick = (row: any) => {
-    setSelectedAnalysis(row.fullAnalysis);
-  };
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLastUpdate(new Date().toLocaleTimeString());
-      if (Math.random() > 0.7) {
-        const formulas = ["=BIRD_DOG_V2(\"Scan_Database\", \"Rate_Trap_Filter: ON\")", "=MAP(VOICE_DNA, ZETA_SYNTAX)", "=SUM(REVENUE_AT_RISK) * SUNSET_YIELD", "=VALIDATE_COMPLIANCE(LEDGER_SYNC)"];
-        setFormulaValue(formulas[Math.floor(Math.random() * formulas.length)]);
-      }
-    }, 4000);
-    return () => clearInterval(timer);
+    // Mock real-time subscriptions for demo
+    console.log('Real-time subscriptions simulated for demo');
   }, []);
 
-  return (
-    <div className="h-screen bg-[#020202] flex flex-col overflow-hidden font-mono text-[10px] selection:bg-gold/20">
-      {/* Tightened Excel Ribbon */}
-      <div className="bg-[#107C41] text-white px-6 py-3 flex justify-between items-center shadow-2xl z-20 border-b border-black/20">
-        <div className="flex items-center space-x-6">
-          <FileSpreadsheet className="w-4 h-4 opacity-80" />
-          <span className="font-bold text-[12px] tracking-tight uppercase italic flex items-center">
-            {data && data.length > 0 ? 'Imported_Client_Ledger.xlsx' : 'Sunset_Protocol_Master_Ledger.xlsx'}
-            <span className="ml-3 px-2 py-0.5 bg-black/30 text-[8px] border border-white/10 rounded-sm font-black tracking-widest">PRO_VER</span>
-          </span>
-        </div>
-        <div className="flex space-x-8 text-emerald-100/60 hidden md:flex font-black uppercase tracking-[0.2em] italic text-[9px]">
-          <span className="cursor-pointer hover:text-white transition-colors border-b border-transparent hover:border-white/40">File</span>
-          <span className="cursor-pointer hover:text-white transition-colors border-b border-transparent hover:border-white/40">Ledger_Sync</span>
-          <span className="cursor-pointer hover:text-white transition-colors border-b border-transparent hover:border-white/40">Security_Vault</span>
-          <span className="cursor-pointer hover:text-white transition-colors border-b border-transparent hover:border-white/40">Nuance_Logic</span>
-        </div>
-      </div>
-
-      {/* Formula Bar - Compact Enterprise Style */}
-      <div className="bg-[#050505] border-b border-white/5 flex items-center px-4 py-2 z-10">
-        <div className="text-gold font-black px-4 border-r border-white/5 italic select-none">fx</div>
-        <div className="flex-1 px-6 text-white/50 font-mono overflow-hidden whitespace-nowrap text-ellipsis italic font-bold text-[11px] flex items-center">
-           <span className="text-blue-400 mr-2">{formulaValue.split('(')[0]}</span>
-           <span className="text-white/20 mr-1">(</span>
-           <span className="text-emerald-400">"{formulaValue.includes('"') ? formulaValue.split('"')[1] : 'SYSTEM_INIT'}"</span>
-           <span className="text-white/20">)</span>
-        </div>
-        <div className="flex items-center space-x-5 px-4">
-           <Search className="w-3 h-3 text-white/20 cursor-pointer hover:text-gold transition-colors" />
-           <Filter className="w-3 h-3 text-white/20 cursor-pointer hover:text-gold transition-colors" />
-           <div className="h-4 w-[1px] bg-white/5"></div>
-           <Activity className="w-3 h-3 text-gold/40 animate-pulse" />
-        </div>
-      </div>
-
-      {/* Grid Table */}
-      <div className="flex-1 overflow-auto bg-black relative custom-scrollbar">
-        <table className="min-w-full border-collapse">
-          <thead className="bg-[#0a192f] sticky top-0 z-10 border-b border-white/10 shadow-lg">
-            <tr>
-              <th className="w-12 border-r border-white/5 p-2 text-center text-white/10 bg-black/40 italic font-black">#</th>
-              <th className="border-r border-white/5 px-6 py-2 text-left font-black text-white/40 uppercase tracking-[0.2em] italic w-48">Client_Entity</th>
-              <th className="border-r border-white/5 px-6 py-2 text-left font-black text-white/40 uppercase tracking-[0.2em] italic w-32">Last_Action</th>
-              <th className="border-r border-white/5 px-6 py-2 text-left font-black text-white/40 uppercase tracking-[0.2em] italic w-40">Trigger_Event</th>
-              <th className="border-r border-white/5 px-6 py-2 text-left font-black text-gold/60 uppercase tracking-[0.2em] italic flex-1">The Play (Strategic Prescription)</th>
-              <th className="border-b border-white/5 px-6 py-2 text-left font-black text-white/40 uppercase tracking-[0.2em] italic w-32">Integrity</th>
-            </tr>
-          </thead>
-          <tbody className="text-white/50">
-            {processedRows.map((row, index) => (
-              <tr 
-                key={row.id} 
-                onClick={() => handleRowClick(row)}
-                className="hover:bg-gold/[0.04] transition-colors cursor-pointer group border-b border-white/[0.02]"
-              >
-                <td className="border-r border-white/5 text-center text-white/5 bg-white/[0.01] font-sans font-bold italic py-2">{index + 1}</td>
-                <td className="border-r border-white/5 px-6 py-2 text-white/90 font-black uppercase tracking-tighter italic text-base group-hover:text-white transition-colors">{row.name}</td>
-                <td className="border-r border-white/5 px-6 py-2 text-white/20 italic text-[9px]">{row.lastContact}</td>
-                <td className="border-r border-white/5 px-6 py-2">
-                  <div className="flex items-center space-x-2">
-                     <div className={`w-1 h-1 rounded-full ${row.status.includes('HOT') ? 'bg-gold animate-pulse' : 'bg-white/10'}`}></div>
-                     <span className="text-white/40 uppercase tracking-widest italic text-[9px] truncate max-w-[140px]">{row.trigger}</span>
-                  </div>
-                </td>
-                <td className="border-r border-white/5 px-6 py-2 text-white/60 italic border-l-2 border-l-gold relative bg-gold/[0.01] group-hover:bg-gold/[0.03] transition-colors">
-                  <span className="truncate block max-w-[600px] leading-tight group-hover:max-w-none group-hover:whitespace-normal transition-all">{row.aiNote}</span>
-                   <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex items-center space-x-3 transition-all">
-                        <span className="text-[8px] text-gold font-black bg-black border border-gold/30 px-3 py-1 tracking-widest italic shadow-2xl">INSPECT_NUANCE</span>
-                   </div>
-                </td>
-                <td className="px-6 py-2">
-                  <span className={`px-3 py-0.5 text-[8px] font-black uppercase tracking-widest italic border ${
-                    row.status.includes("HOT") ? "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/10"
-                  }`}>
-                    {row.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-             {/* Dynamic Empty State Filler */}
-             {[...Array(Math.max(0, 30 - processedRows.length))].map((_, i) => (
-               <tr key={i+300} className="border-b border-white/[0.02] opacity-[0.02]">
-                 <td className="border-r border-white/5 text-center bg-white/5 py-2">{processedRows.length + i + 1}</td>
-                 <td className="border-r border-white/5 p-4"></td>
-                 <td className="border-r border-white/5 p-4"></td>
-                 <td className="border-r border-white/5 p-4"></td>
-                 <td className="border-r border-white/5 p-4"></td>
-                 <td className="p-4"></td>
-               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+  const handleRowClick = async (id: string) => {
+    setExpandedRow(expandedRow === id ? null : id);
+    if (expandedRow !== id) {
+      setDetailLoading(true);
       
-      {/* Tightened Footer Status Bar */}
-      <div className="bg-[#050505] border-t border-white/10 px-6 py-2.5 text-[9px] text-white/20 flex justify-between font-black uppercase tracking-[0.2em] italic z-20">
-        <div className="flex items-center space-x-10">
-          <div className="flex items-center space-x-2">
-            <Zap className="w-2.5 h-2.5 text-green-500 animate-pulse" />
-            <span className="text-white/40">ENGINE_SYNC: 100%</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Shield className="w-2.5 h-2.5 text-gold/40" />
-            <span className="text-white/40">SECURITY: GLBA_SECURED</span>
-          </div>
-          <span className="text-white/10 hidden lg:inline">LEDGER_ID: SM_V2_{Math.floor(Math.random()*100000)}</span>
-        </div>
-        <div className="flex items-center space-x-10">
-           <span className="flex items-center">CLIENTS_ACTIVE: <span className="text-white ml-2">{processedRows.length}</span></span>
-           <span className="flex items-center">YIELD_OPTIMIZATION: <span className="text-emerald-400 ml-2">+18.4%</span></span>
-           <div className="flex space-x-2 ml-6">
-              <div className="w-2 h-2 bg-gold/10"></div>
-              <div className="w-2 h-2 bg-gold/30"></div>
-              <div className="w-2 h-2 bg-gold/50"></div>
-           </div>
-        </div>
-      </div>
+      // DEMO MODE: Simulate API call with mock data instead of real API
+      setTimeout(() => {
+        // Find the relationship in our mock data
+        const mockRelationships = [
+          {
+            id: '1',
+            continuityGrade: 'AAA',
+            continuityScore: 99,
+            displayName: 'Hamilton Trust',
+            roleOrSegment: 'E. Hamilton',
+            status: 'STRONG',
+            valueOutlook: 'Secured',
+            lastInteractionAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            value: '$12.4M',
+            // Additional mock details for expanded view
+            riskFactors: ['Low engagement', 'Market volatility'],
+            lastContact: '2 days ago',
+            nextAction: 'Quarterly review scheduled',
+            relationshipManager: 'Sarah Chen'
+          },
+          {
+            id: '2',
+            continuityGrade: 'BB',
+            continuityScore: 42,
+            displayName: 'Nexus Surgery Group',
+            roleOrSegment: 'Dr. S. Vance',
+            status: 'At Risk',
+            valueOutlook: 'Critical',
+            lastInteractionAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+            value: '$3.1M',
+            riskFactors: ['45+ days since contact', 'Competitor outreach detected'],
+            lastContact: '45 days ago',
+            nextAction: 'URGENT: Personal outreach required',
+            relationshipManager: 'Marcus Rodriguez'
+          },
+          {
+            id: '3',
+            continuityGrade: 'A',
+            continuityScore: 88,
+            displayName: 'Estate of J. Rourke',
+            roleOrSegment: 'L. Rourke',
+            status: 'Monitoring',
+            valueOutlook: 'Q3 2026',
+            lastInteractionAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+            value: '$5.5M',
+            riskFactors: ['Estate transition in progress'],
+            lastContact: '12 days ago',
+            nextAction: 'Monitor estate proceedings',
+            relationshipManager: 'Jennifer Walsh'
+          },
+          {
+            id: '4',
+            continuityGrade: 'BBB',
+            continuityScore: 65,
+            displayName: 'Venture Partners IV',
+            roleOrSegment: 'M. Chen',
+            status: 'Drifting',
+            valueOutlook: 'Immediate',
+            lastInteractionAt: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(),
+            value: '$8.2M',
+            riskFactors: ['28 days since contact', 'Reduced engagement'],
+            lastContact: '28 days ago',
+            nextAction: 'Schedule immediate check-in',
+            relationshipManager: 'David Park'
+          }
+        ];
+        
+        const detail = mockRelationships.find(rel => rel.id === id);
+        setSelectedRelationship(detail || null);
+        
+        // DEMO MODE: Simulate real-time subscriptions (no actual API calls)
+        console.log('Real-time subscriptions simulated for demo');
+        
+        setDetailLoading(false);
+      }, 300); // Demo-optimized delay for responsiveness
+      
+      // DEMO MODE: No real cleanup needed since no real subscriptions
+      return () => {
+        console.log('Real-time subscriptions not available for this relationship');
+      };
+    }
+  };
 
-       {selectedAnalysis && (
-            <LogicStream 
-                analysis={selectedAnalysis} 
-                onClose={() => setSelectedAnalysis(null)} 
-            />
+  if (loading) return <div className="p-8 text-center text-primus-text">Loading Continuity Ledger...</div>;
+
+  return (
+    <div className="min-h-screen bg-primus-bg text-primus-text p-4 sm:p-6 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 flex items-center gap-2 sm:gap-3">
+          <Shield className="text-primus-gold w-6 h-6 sm:w-8 sm:h-8" />
+          <span className="truncate">Continuity Ledger</span>
+        </h1>
+
+        <div className="bg-primus-bg border border-primus-slate/20 rounded-lg overflow-hidden">
+          {/* Mobile: Card View, Desktop: Table View */}
+          <div className="hidden md:block overflow-x-auto lg:overflow-visible">
+            <table className="w-full min-w-full lg:min-w-0">
+              <thead className="bg-primus-slate/10">
+                <tr>
+                  <th className="px-8 py-5 text-left text-base font-semibold text-primus-slate">Rating</th>
+                  <th className="px-8 py-5 text-left text-base font-semibold text-primus-slate">Record</th>
+                  <th className="px-8 py-5 text-left text-base font-semibold text-primus-slate">Status</th>
+                  <th className="px-8 py-5 text-left text-base font-semibold text-primus-slate">Horizon</th>
+                  <th className="px-8 py-5 text-left text-base font-semibold text-primus-slate">Last Verified</th>
+                  <th className="px-8 py-5 text-left text-base font-semibold text-primus-slate">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-primus-slate/10">
+                {relationships.map((rel) => (
+                  <React.Fragment key={rel.id}>
+                    <tr
+                      className="hover:bg-primus-slate/5 cursor-pointer transition-colors"
+                      onClick={() => handleRowClick(rel.id)}
+                    >
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-primus-gold">{rel.continuityGrade}</span>
+                          <span className="text-xs text-primus-slate opacity-0 hover:opacity-100 transition-opacity">
+                            ({rel.continuityScore})
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 font-medium">
+                        <div>
+                          <div className="font-semibold text-primus-text text-base">{rel.displayName}</div>
+                          <div className="text-sm text-primus-slate">{rel.roleOrSegment}</div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className={`px-3 py-2 rounded text-sm font-medium ${
+                          rel.status === 'STRONG' ? 'bg-green-500/20 text-green-400' :
+                          rel.status === 'At Risk' ? 'bg-red-500/20 text-red-400' :
+                          rel.status === 'Monitoring' ? 'bg-yellow-500/20 text-yellow-400' :
+                          rel.status === 'Drifting' ? 'bg-orange-500/20 text-orange-400' :
+                          'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {rel.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-primus-slate">
+                        <div>
+                          <div className="font-medium text-primus-text text-base">{rel.valueOutlook}</div>
+                          <div className="text-sm">{rel.value}</div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-primus-slate text-base">
+                        {rel.lastInteractionAt ? new Date(rel.lastInteractionAt).toLocaleDateString() : 'Never'}
+                      </td>
+                      <td className="px-8 py-6">
+                        <ChevronDown
+                          className={`w-4 h-4 text-primus-slate transition-transform ${
+                            expandedRow === rel.id ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </td>
+                    </tr>
+                    {expandedRow === rel.id && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-4 bg-primus-slate/5">
+                          {detailLoading ? (
+                            <div className="flex items-center justify-center py-8 gap-3">
+                              <Activity className="w-5 h-5 animate-spin text-primus-gold" />
+                              <span className="text-primus-slate">Analyzing relationship signals...</span>
+                            </div>
+                          ) : selectedRelationship ? (
+                            <div className="space-y-4">
+                              <h3 className="font-semibold">Decision Panel</h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-sm text-primus-slate">Value: ${selectedRelationship.value?.toLocaleString() || 'N/A'}</p>
+                                  <p className="text-sm text-primus-slate">Rating Score: {selectedRelationship.numericScore || 'N/A'}/100</p>
+                                  <p className="text-sm text-primus-slate">Rationale: {selectedRelationship.rationale || 'No rationale available'}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate('/approvals');
+                                    }}
+                                    className="px-6 py-3 bg-[#C6A45E] text-black rounded hover:bg-[#D4AF37] transition-colors text-sm font-medium"
+                                  >
+                                    Send to Governor
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate('/continuity-signals');
+                                    }}
+                                    className="px-6 py-3 bg-primus-slate/20 text-primus-text rounded hover:bg-primus-slate/40 transition-colors text-sm font-medium"
+                                  >
+                                    View Signals
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 text-primus-slate">Failed to load details</div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-primus-slate/10">
+            {relationships.map((rel) => (
+              <div
+                key={rel.id}
+                className="p-4 hover:bg-primus-slate/5 transition-colors active:bg-primus-slate/10"
+                onClick={() => handleRowClick(rel.id)}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xl font-bold text-primus-gold">{rel.continuityGrade}</span>
+                      <span className="text-sm text-primus-slate">({rel.continuityScore})</span>
+                    </div>
+                    <h3 className="font-semibold text-base text-primus-text truncate">{rel.displayName}</h3>
+                    <p className="text-sm text-primus-slate">{rel.roleOrSegment}</p>
+                  </div>
+                  <ChevronDown
+                    className={`w-5 h-5 text-primus-slate transition-transform flex-shrink-0 ml-2 ${
+                      expandedRow === rel.id ? 'rotate-180' : ''
+                    }`}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className={`px-3 py-1 rounded text-xs font-medium ${
+                    rel.status === 'STRONG' ? 'bg-green-500/20 text-green-400' :
+                    rel.status === 'At Risk' ? 'bg-red-500/20 text-red-400' :
+                    rel.status === 'Monitoring' ? 'bg-yellow-500/20 text-yellow-400' :
+                    rel.status === 'Drifting' ? 'bg-orange-500/20 text-orange-400' :
+                    'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    {rel.status}
+                  </span>
+                  <span className="text-sm text-primus-slate">{rel.value}</span>
+                </div>
+
+                <div className="flex items-center justify-between text-sm text-primus-slate">
+                  <span>{rel.valueOutlook}</span>
+                  <span>{rel.lastInteractionAt ? new Date(rel.lastInteractionAt).toLocaleDateString() : 'Never'}</span>
+                </div>
+
+                {expandedRow === rel.id && (
+                  <div className="mt-4 pt-4 border-t border-primus-slate/10 space-y-3">
+                    {detailLoading ? (
+                      <div className="flex items-center justify-center py-6 gap-3">
+                        <Activity className="w-5 h-5 animate-spin text-primus-gold" />
+                        <span className="text-sm text-primus-slate">Analyzing relationship signals...</span>
+                      </div>
+                    ) : selectedRelationship ? (
+                      <div className="space-y-4">
+                        <div className="text-sm">
+                          <p className="text-primus-slate mb-1">Value: <span className="text-primus-text font-medium">{selectedRelationship.value}</span></p>
+                          <p className="text-primus-slate mb-1">Rating Score: <span className="text-primus-text font-medium">{selectedRelationship.numericScore || 'N/A'}/100</span></p>
+                          <p className="text-primus-slate mb-1">Rationale: <span className="text-primus-text">{selectedRelationship.rationale || 'No rationale available'}</span></p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/approvals');
+                            }}
+                            className="w-full px-4 py-3 bg-[#C6A45E] text-black rounded hover:bg-[#D4AF37] transition-colors text-sm font-medium"
+                          >
+                            Send to Governor
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/continuity-signals');
+                            }}
+                            className="w-full px-4 py-3 bg-primus-slate/20 text-primus-text rounded hover:bg-primus-slate/40 transition-colors text-sm font-medium"
+                          >
+                            View Signals
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-primus-slate text-sm">Failed to load details</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {relationships.length === 0 && (
+          <div className="text-center py-12">
+            <Shield className="mx-auto text-primus-slate mb-4" size={48} />
+            <p className="text-primus-slate">No relationships in continuity ledger.</p>
+          </div>
         )}
-
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 5px;
-          height: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #020202;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #112240;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #d4af37;
-        }
-      `}</style>
+      </div>
     </div>
   );
 };
