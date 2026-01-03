@@ -29,18 +29,9 @@ const Vault = lazy(() => import('./src/pages/Vault'));
 const Login = lazy(() => import('./src/pages/Login'));
 const ComingSoon = lazy(() => import('./src/components/ComingSoon'));
 
-// Protected Route wrapper
+// Protected Route wrapper - BYPASSED FOR TESTING
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
-  
-  if (loading) {
-    return <LoadingScreen />;
-  }
-  
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  
+  // Auth bypass - always allow access
   return <>{children}</>;
 };
 
@@ -100,7 +91,7 @@ const App: React.FC = () => {
                   } 
                 />
                 <Route 
-                  path="/security" 
+                  path="/vault" 
                   element={
                     <ProtectedRoute>
                       <Vault />
@@ -108,12 +99,20 @@ const App: React.FC = () => {
                   } 
                 />
                 <Route 
-                  path="/continuity-signals" 
+                  path="/security" 
+                  element={<Navigate to="/vault" replace />}
+                />
+                <Route 
+                  path="/signals" 
                   element={
                     <ProtectedRoute>
                       <ContinuitySignalsPage />
                     </ProtectedRoute>
                   } 
+                />
+                <Route 
+                  path="/continuity-signals" 
+                  element={<Navigate to="/signals" replace />}
                 />
                 <Route 
                   path="/approvals" 

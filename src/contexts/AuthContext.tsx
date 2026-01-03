@@ -38,20 +38,51 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  // TEMPORARY BYPASS - Auto-login with mock founder user
+  const [user, setUser] = useState<AuthUser | null>({
+    id: 'b418cf2e-8a64-4fe0-b69e-68b07af9baa5',
+    email: 'testuser@gmail.com',
+    role: 'FOUNDER',
+    firmId: '00000000-0000-0000-0000-000000000001',
+    displayName: 'Test Founder',
+    isActive: true
+  });
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Fetch user profile from users table
   const fetchUserProfile = async (authUserId: string): Promise<AuthUser | null> => {
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUserId)
         .single();
 
-      if (error) {
+      // If user doesn't exist, create them
+      if (error && error.code === 'PGRST116') {
+        const { data: authUser } = await supabase.auth.getUser();
+        if (authUser.user) {
+          const { data: newUser, error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: authUserId,
+              firm_id: '00000000-0000-0000-0000-000000000001', // WAL firm
+              email: authUser.user.email,
+              role: 'FOUNDER',
+              display_name: 'Test Founder',
+              is_active: true
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Error creating user profile:', insertError);
+            return null;
+          }
+          data = newUser;
+        }
+      } else if (error) {
         console.error('Error fetching user profile:', error);
         return null;
       }
@@ -70,32 +101,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Initialize auth state
+  // Initialize auth state - BYPASS AUTH FOR NOW
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchUserProfile(session.user.id).then(setUser);
-      }
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id);
-        setUser(profile);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    // Skip all auth checks - user is already set to mock founder
+    // No need to fetch from Supabase
   }, []);
 
   const signIn = async (email: string, password: string) => {

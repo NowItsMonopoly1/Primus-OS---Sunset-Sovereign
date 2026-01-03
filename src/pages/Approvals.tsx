@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Check, X, Eye, FileText, ArrowRight, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-// MOCK DATA: The "Drafts" waiting for review
 const INITIAL_DRAFTS = [
   { id: 1, client: 'Hamilton Trust', type: 'Rate Alert', action: 'Refinance Opp', value: '$12.4M', urgency: 'Low' },
   { id: 2, client: 'Nexus Surgery Group', type: 'Continuity Risk', action: 'Personal Check-in', value: '$3.1M', urgency: 'Critical' },

@@ -5,8 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Send, FileText, Lightbulb } from 'lucide-react';
 import { Relationship, ContinuitySignal } from '../data/continuityData';
-import { getRelationships, getContinuitySignals, createDraft } from '../data/fakeApi';
-import { api } from '../services/api';
+import api from '../services/api';
+import { getRelationshipSignals } from '../services/supabase/signals';
 import { useCurrentProfile } from '../hooks/useCurrentProfile';
 
 const DraftComposerPage: React.FC = () => {
@@ -25,15 +25,14 @@ const DraftComposerPage: React.FC = () => {
 
       try {
         const [relationshipsData, signalsData] = await Promise.all([
-          getRelationships(),
-          getContinuitySignals(),
+          api.getPortfolio(),
+          getRelationshipSignals(id!),
         ]);
 
-        const rel = relationshipsData.find(r => r.id === id);
+        const rel = relationshipsData.find((r: Relationship) => r.id === id);
         setRelationship(rel || null);
 
-        const relSignals = signalsData.filter(s => s.relationshipId === id);
-        setSignals(relSignals);
+        setSignals(signalsData.data || []);
 
         // Prefill draft based on signals
         if (rel && relSignals.length > 0) {

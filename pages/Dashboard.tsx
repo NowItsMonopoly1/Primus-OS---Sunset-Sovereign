@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileSpreadsheet, Zap, Shield, Search, Filter, Activity, ChevronDown } from 'lucide-react';
+import { getRelationships, getRelationship } from '../src/services/supabase/relationships';
 
 interface DashboardProps {
   data: any[]; // Keep for compatibility, but use relationships
@@ -15,146 +16,46 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
-    // Use high-fidelity mock data for demo - tells story of risk vs stability
-    const MOCK_DATA = [
-      {
-        id: '1',
-        continuityGrade: 'AAA',
-        continuityScore: 99,
-        displayName: 'Hamilton Trust',
-        roleOrSegment: 'E. Hamilton',
-        status: 'STRONG',
-        valueOutlook: 'Secured',
-        lastInteractionAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2d ago
-        value: '$12.4M'
-      },
-      {
-        id: '2',
-        continuityGrade: 'BB',
-        continuityScore: 42,
-        displayName: 'Nexus Surgery Group',
-        roleOrSegment: 'Dr. S. Vance',
-        status: 'At Risk',
-        valueOutlook: 'Critical',
-        lastInteractionAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), // 45d ago
-        value: '$3.1M'
-      },
-      {
-        id: '3',
-        continuityGrade: 'A',
-        continuityScore: 88,
-        displayName: 'Estate of J. Rourke',
-        roleOrSegment: 'L. Rourke',
-        status: 'Monitoring',
-        valueOutlook: 'Q3 2026',
-        lastInteractionAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(), // 12d ago
-        value: '$5.5M'
-      },
-      {
-        id: '4',
-        continuityGrade: 'BBB',
-        continuityScore: 65,
-        displayName: 'Venture Partners IV',
-        roleOrSegment: 'M. Chen',
-        status: 'Drifting',
-        valueOutlook: 'Immediate',
-        lastInteractionAt: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(), // 28d ago
-        value: '$8.2M'
-      },
-    ];
+    const fetchRelationships = async () => {
+      try {
+        const { data, error } = await getRelationships();
+        if (error) throw error;
+        setRelationships(data || []);
+      } catch (error) {
+        console.error('Failed to fetch relationships:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setRelationships(MOCK_DATA);
-    setLoading(false);
+    fetchRelationships();
 
-    // Mock real-time subscriptions for demo
-    console.log('Real-time subscriptions simulated for demo');
+    // Set up real-time subscriptions (optional - comment out if not needed)
+    // const continuitySubscription = subscribeToRelationships(() => {
+    //   console.log('Continuity update received');
+    //   fetchRelationships(); // Refresh data on changes
+    // });
+
+    // return () => {
+    //   continuitySubscription?.unsubscribe();
+    // };
   }, []);
 
   const handleRowClick = async (id: string) => {
     setExpandedRow(expandedRow === id ? null : id);
     if (expandedRow !== id) {
       setDetailLoading(true);
-      
-      // DEMO MODE: Simulate API call with mock data instead of real API
-      setTimeout(() => {
-        // Find the relationship in our mock data
-        const mockRelationships = [
-          {
-            id: '1',
-            continuityGrade: 'AAA',
-            continuityScore: 99,
-            displayName: 'Hamilton Trust',
-            roleOrSegment: 'E. Hamilton',
-            status: 'STRONG',
-            valueOutlook: 'Secured',
-            lastInteractionAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            value: '$12.4M',
-            // Additional mock details for expanded view
-            riskFactors: ['Low engagement', 'Market volatility'],
-            lastContact: '2 days ago',
-            nextAction: 'Quarterly review scheduled',
-            relationshipManager: 'Sarah Chen'
-          },
-          {
-            id: '2',
-            continuityGrade: 'BB',
-            continuityScore: 42,
-            displayName: 'Nexus Surgery Group',
-            roleOrSegment: 'Dr. S. Vance',
-            status: 'At Risk',
-            valueOutlook: 'Critical',
-            lastInteractionAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-            value: '$3.1M',
-            riskFactors: ['45+ days since contact', 'Competitor outreach detected'],
-            lastContact: '45 days ago',
-            nextAction: 'URGENT: Personal outreach required',
-            relationshipManager: 'Marcus Rodriguez'
-          },
-          {
-            id: '3',
-            continuityGrade: 'A',
-            continuityScore: 88,
-            displayName: 'Estate of J. Rourke',
-            roleOrSegment: 'L. Rourke',
-            status: 'Monitoring',
-            valueOutlook: 'Q3 2026',
-            lastInteractionAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-            value: '$5.5M',
-            riskFactors: ['Estate transition in progress'],
-            lastContact: '12 days ago',
-            nextAction: 'Monitor estate proceedings',
-            relationshipManager: 'Jennifer Walsh'
-          },
-          {
-            id: '4',
-            continuityGrade: 'BBB',
-            continuityScore: 65,
-            displayName: 'Venture Partners IV',
-            roleOrSegment: 'M. Chen',
-            status: 'Drifting',
-            valueOutlook: 'Immediate',
-            lastInteractionAt: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(),
-            value: '$8.2M',
-            riskFactors: ['28 days since contact', 'Reduced engagement'],
-            lastContact: '28 days ago',
-            nextAction: 'Schedule immediate check-in',
-            relationshipManager: 'David Park'
-          }
-        ];
-        
-        const detail = mockRelationships.find(rel => rel.id === id);
-        setSelectedRelationship(detail || null);
-        
-        // DEMO MODE: Simulate real-time subscriptions (no actual API calls)
-        console.log('Real-time subscriptions simulated for demo');
-        
+
+      try {
+        const { data, error } = await getRelationship(id);
+        if (error) throw error;
+        setSelectedRelationship(data);
+      } catch (error) {
+        console.error('Failed to fetch relationship details:', error);
+        setSelectedRelationship(null);
+      } finally {
         setDetailLoading(false);
-      }, 300); // Demo-optimized delay for responsiveness
-      
-      // DEMO MODE: No real cleanup needed since no real subscriptions
-      return () => {
-        console.log('Real-time subscriptions not available for this relationship');
-      };
+      }
     }
   };
 

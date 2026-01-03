@@ -4,9 +4,11 @@ import Header from '../components/Header';
 import Home from '../pages/Home';
 import Dashboard from '../pages/Dashboard';
 import Onboarding from '../pages/Onboarding';
-import Approvals from '../pages/Approvals'; // The Governor
-import Strategy from './pages/Strategy';   // <--- NEW: Import the Strategy Engine
-import Vault from '../pages/Vault';         // <--- NEW: Import the Vault
+import Approvals from '../pages/Approvals';
+import Strategy from './pages/Strategy';
+import Vault from './pages/Vault';
+import ContinuitySignalsPage from './pages/ContinuitySignalsPage';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Placeholder for missing modules (Crisis Mode)
 const ComingSoon = ({ title }: { title: string }) => (
@@ -19,37 +21,42 @@ const ComingSoon = ({ title }: { title: string }) => (
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-[#1A1F24] text-[#E6E8EB] font-sans">
-        {/* Navigation Ribbon */}
-        <Header />
-        
-        <Routes>
-          {/* 1. Landing / Login */}
-          <Route path="/" element={<Home />} />
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-[#1A1F24] text-[#E6E8EB] font-sans">
+          {/* Navigation Ribbon */}
+          <Header />
           
-          {/* 2. The Ledger (Core) */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/ledger" element={<Navigate to="/dashboard" replace />} />
-          
-          {/* 3. The Governor (Approvals) */}
-          <Route path="/approvals" element={<Approvals />} />
-          
-          {/* 4. Strategy Engine (The Sunset Protocol) */}
-          <Route path="/strategy" element={<Strategy />} />
-          
-          {/* 5. Secure Vault (Asset Storage) */}
-          <Route path="/vault" element={<Vault />} />
-          
-          {/* 6. Onboarding (Data Ingestion) */}
-          <Route path="/onboarding" element={<Onboarding />} />
-          
-          {/* 7. Placeholders / Fallbacks */}
-          <Route path="/crisis" element={<ComingSoon title="Crisis Succession Mode" />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-    </Router>
+          <Routes>
+            {/* 1. Landing / Login */}
+            <Route path="/" element={<Home />} />
+            
+            {/* 2. The Ledger (Core) */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/ledger" element={<Navigate to="/dashboard" replace />} />
+            
+            {/* 3. The Governor (Approvals) */}
+            <Route path="/approvals" element={<Approvals />} />
+            
+            {/* 4. Strategy Engine (The Sunset Protocol) */}
+            <Route path="/strategy" element={<Strategy />} />
+            
+            {/* 5. Secure Vault (Asset Storage) */}
+            <Route path="/vault" element={<Vault />} />
+            
+            {/* 6. Continuity Signals (Heartbeat Engine) */}
+            <Route path="/signals" element={<ContinuitySignalsPage />} />
+            
+            {/* 7. Onboarding (Data Ingestion) */}
+            <Route path="/onboarding" element={<Onboarding />} />
+            
+            {/* 8. Placeholders / Fallbacks */}
+            <Route path="/crisis" element={<ComingSoon title="Crisis Succession Mode" />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

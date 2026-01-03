@@ -15,10 +15,10 @@ const Header: React.FC = () => {
 
   const navItems = [
     { label: 'Ledger', path: '/dashboard', icon: <LayoutGrid className="w-4 h-4" /> },
-    { label: 'Signals', path: '/continuity-signals', icon: <Activity className="w-4 h-4" /> },
+    { label: 'Signals', path: '/signals', icon: <Activity className="w-4 h-4" /> },
     { label: 'Governor', path: '/approvals', icon: <ShieldCheck className="w-4 h-4" /> },
     { label: 'Strategy', path: '/strategy', icon: <ArrowLeftRight className="w-4 h-4" /> },
-    { label: 'Vault', path: '/security', icon: <Shield className="w-4 h-4" /> },
+    { label: 'Vault', path: '/vault', icon: <Shield className="w-4 h-4" /> },
   ];
 
   return (

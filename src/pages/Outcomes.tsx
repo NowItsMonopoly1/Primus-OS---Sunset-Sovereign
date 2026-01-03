@@ -189,15 +189,8 @@ const Outcomes = () => {
                   Export PDF
                 </button>
               )}
-            </div
-              onClick={handleSaveBaseline}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-[#C6A45E] hover:bg-[#D4B36A] text-[#1A1F24] font-semibold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : savedBaseline ? 'Update Baseline' : 'Save Baseline'}
-            </button>
-          )}
+            </div>
+          </div>
         </div>
 
         {/* Time Horizon Selector */}

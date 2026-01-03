@@ -45,7 +45,26 @@ export async function getActiveSignals(): Promise<{ data: ContinuitySignal[] | n
 
     if (error) throw error;
 
-    return { data: data as ContinuitySignal[], error: null };
+    // Map snake_case to camelCase
+    const mappedData = data?.map(row => ({
+      id: row.id,
+      firmId: row.firm_id,
+      relationshipId: row.relationship_id,
+      severity: row.severity,
+      signalType: row.signal_type,
+      title: row.title,
+      description: row.description,
+      metricValue: row.metric_value,
+      assignedTo: row.assigned_to,
+      resolvedAt: row.resolved_at,
+      resolvedBy: row.resolved_by,
+      resolutionNotes: row.resolution_notes,
+      triggeredAt: row.triggered_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })) || [];
+
+    return { data: mappedData as ContinuitySignal[], error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }

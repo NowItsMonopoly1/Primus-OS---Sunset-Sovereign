@@ -6,9 +6,6 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-// Import mock data provider for fallback when Supabase unavailable
-import { mockDataProvider } from '../data/mockDataProvider';
-
 // Lazy load Supabase to avoid import errors when not configured
 let supabase: any = null;
 let supabaseLoaded = false;
@@ -19,7 +16,7 @@ const loadSupabase = async () => {
       const supabaseModule = await import('../supabaseClient');
       supabase = supabaseModule.supabase;
     } catch (error) {
-      console.warn('⚠️  Supabase not configured. Using mock data provider.');
+      console.warn('⚠️  Supabase not configured. API calls will fail.');
       supabase = null;
     }
     supabaseLoaded = true;
@@ -291,7 +288,8 @@ export const api = {
   ) {
     const client = await loadSupabase();
     if (!client) {
-      return mockDataProvider.subscribeToContinuityUpdates(relationshipId, callback);
+      console.warn('Supabase not available for continuity subscriptions');
+      return { unsubscribe: () => {} };
     }
 
     return client
@@ -318,7 +316,8 @@ export const api = {
   ) {
     const client = await loadSupabase();
     if (!client) {
-      return mockDataProvider.subscribeToInteractionUpdates(relationshipId, callback);
+      console.warn('Supabase not available for interaction subscriptions');
+      return { unsubscribe: () => {} };
     }
 
     return client
@@ -345,7 +344,8 @@ export const api = {
   ) {
     const client = await loadSupabase();
     if (!client) {
-      return mockDataProvider.subscribeToRelationshipUpdates(firmId, callback);
+      console.warn('Supabase not available for relationship subscriptions');
+      return { unsubscribe: () => {} };
     }
 
     return client
@@ -369,9 +369,63 @@ export const api = {
   unsubscribeAll() {
     if (supabase) {
       supabase.removeAllChannels();
-    } else {
-      mockDataProvider.unsubscribeAll();
     }
+  },
+
+  // ============================================
+  // LAUNCH AGENT ENDPOINTS
+  // ============================================
+
+  /**
+   * Run automated continuity audit via Launch Agent
+   */
+  async runContinuityAudit(firmId: string) {
+    const response = await fetch(`${API_BASE}/launch-agent/continuity-audit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firmId }),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Run automated security scan via Launch Agent
+   */
+  async runSecurityScan(firmId: string) {
+    const response = await fetch(`${API_BASE}/launch-agent/security-scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firmId }),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Get comprehensive risk assessment (continuity + security)
+   */
+  async getRiskAssessment(firmId: string) {
+    const response = await fetch(`${API_BASE}/launch-agent/risk-assessment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firmId }),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Get available Launch Agent adapters
+   */
+  async getLaunchAgentAdapters() {
+    const response = await fetch(`${API_BASE}/launch-agent/adapters`);
+    return handleResponse(response);
+  },
+
+  /**
+   * Check Launch Agent service status
+   */
+  async getLaunchAgentStatus() {
+    const response = await fetch(`${API_BASE}/launch-agent/status`);
+    return handleResponse(response);
   },
 };
 

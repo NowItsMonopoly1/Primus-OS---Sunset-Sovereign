@@ -52,6 +52,7 @@ export interface UpdateRelationshipInput {
 // Get all relationships for current user's firm
 export async function getRelationships(): Promise<{ data: Relationship[] | null; error: Error | null }> {
   try {
+    // TEMPORARY BYPASS: Disable RLS for testing
     const { data, error } = await supabase
       .from('relationships')
       .select('*')

@@ -10,6 +10,7 @@ import { createApiRouter } from './api/routes';
 import { LedgerController } from './api/controllers/LedgerController';
 import { GovernanceController } from './api/controllers/GovernanceController';
 import { OnboardingController } from './api/controllers/OnboardingController';
+import launchAgentRoutes from './api/routes/launchAgentRoutes';
 
 // Domain Services
 import { ContinuityScoreService } from './domain/continuity/ContinuityScoreService';
@@ -25,6 +26,9 @@ import { GovernanceRepository } from './infra/repositories/GovernanceRepository'
 
 // Database
 import { Database } from './infra/db/connection';
+
+// Launch Agent Integration
+import { createLaunchAgentClient } from './services/LaunchAgentClient';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -51,6 +55,15 @@ app.use((req, res, next) => {
   };
   next();
 });
+
+// Initialize Launch Agent client
+const launchAgent = createLaunchAgentClient();
+if (launchAgent) {
+  app.locals.launchAgent = launchAgent;
+  console.log('✅ Launch Agent integration enabled');
+} else {
+  console.log('ℹ️  Launch Agent integration disabled (not configured)');
+}
 
 // ============================================
 // INITIALIZE REPOSITORIES
@@ -105,15 +118,20 @@ app.use(
   })
 );
 
+// Launch Agent routes
+app.use('/api/launch-agent', launchAgentRoutes);
+
 // Health check
 app.get('/health', async (req, res) => {
   const dbHealthy = await Database.healthCheck();
+  const launchAgentAvailable = launchAgent ? launchAgent.getAvailability() : false;
 
   res.json({
     status: dbHealthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     service: 'Primus OS Backend',
     database: dbHealthy ? 'connected' : 'disconnected',
+    launchAgent: launchAgentAvailable ? 'online' : 'offline',
   });
 });
 

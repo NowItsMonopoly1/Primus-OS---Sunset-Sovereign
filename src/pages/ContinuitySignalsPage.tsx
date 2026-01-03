@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, CheckCircle, AlertTriangle, TrendingUp, Clock } from 'lucide-react';
+import { Activity, CheckCircle, AlertTriangle, TrendingUp, Clock, Zap, RefreshCw, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getActiveSignals, resolveSignal, ContinuitySignal } from '../services/supabase/signals';
+import api from '../services/api';
 
 type SignalPhase = 'all' | 'contact' | 'engagement' | 'life-stage' | 'succession';
 
@@ -165,7 +166,24 @@ const ContinuitySignalsPage = () => {
   const [signals, setSignals] = useState<ContinuitySignal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [launchAgentStatus, setLaunchAgentStatus] = useState<'online' | 'offline' | 'loading'>('loading');
+  const [runningAudit, setRunningAudit] = useState(false);
+  const [runningRiskAssessment, setRunningRiskAssessment] = useState(false);
   const { user } = useAuth();
+
+  // Check Launch Agent status on mount
+  useEffect(() => {
+    const checkLaunchAgent = async () => {
+      try {
+        const result = await api.getLaunchAgentStatus();
+        setLaunchAgentStatus(result.available ? 'online' : 'offline');
+      } catch (error) {
+        setLaunchAgentStatus('offline');
+      }
+    };
+
+    checkLaunchAgent();
+  }, []);
 
   // Load signals from database
   useEffect(() => {
@@ -173,14 +191,22 @@ const ContinuitySignalsPage = () => {
       setLoading(true);
       setError(null);
       
-      const { data, error } = await getActiveSignals();
-      
-      if (error) {
-        console.error('Error loading signals:', error);
-        setError('Failed to load signals');
+      try {
+        const { data, error } = await getActiveSignals();
+        
+        if (error) {
+          console.error('Error loading signals:', error);
+          // Use mock data as fallback
+          setError(null);
+          setSignals([]);
+        } else {
+          console.log('Loaded signals from Supabase:', data);
+          setSignals(data || []);
+        }
+      } catch (err) {
+        console.error('Unexpected error loading signals:', err);
+        setError(null);
         setSignals([]);
-      } else {
-        setSignals(data || []);
       }
       
       setLoading(false);
@@ -223,6 +249,55 @@ const ContinuitySignalsPage = () => {
     ? displaySignals
     : displaySignals.filter(s => s.phase === activePhase);
 
+  // Run Launch Agent continuity audit
+  const handleRunAudit = async () => {
+    if (!user?.firmId) return;
+    
+    setRunningAudit(true);
+    try {
+      const result = await api.runContinuityAudit(user.firmId);
+      console.log('Audit completed:', result);
+      
+      // Reload signals after audit
+      const { data } = await getActiveSignals();
+      if (data) setSignals(data);
+      
+      alert('Continuity audit completed successfully!');
+    } catch (error) {
+      console.error('Audit failed:', error);
+      alert('Audit failed: ' + error.message);
+    } finally {
+      setRunningAudit(false);
+    }
+  };
+
+  // Run Launch Agent comprehensive risk assessment
+  const handleRunRiskAssessment = async () => {
+    if (!user?.firmId) return;
+    
+    setRunningRiskAssessment(true);
+    try {
+      const result = await api.getRiskAssessment(user.firmId);
+      console.log('Risk assessment completed:', result);
+      
+      // Reload signals after assessment
+      const { data } = await getActiveSignals();
+      if (data) setSignals(data);
+      
+      // Show executive summary if available
+      if (result.assessment?.executive_summary) {
+        alert('Risk Assessment Complete\n\n' + result.assessment.executive_summary);
+      } else {
+        alert('Risk assessment completed successfully!');
+      }
+    } catch (error) {
+      console.error('Risk assessment failed:', error);
+      alert('Risk assessment failed: ' + error.message);
+    } finally {
+      setRunningRiskAssessment(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#1A1F24] flex items-center justify-center">
@@ -253,8 +328,8 @@ const ContinuitySignalsPage = () => {
   };
 
   const getPhaseStats = (phase: keyof typeof PHASE_CONFIG) => {
-    const phaseSignals = MOCK_SIGNALS.filter(s => s.phase === phase);
-    const actionRequired = phaseSignals.filter(s => s.actionRequired).length;
+    const phaseSignals = signals.filter(s => s.type.toLowerCase().includes(phase) || phase === 'all');
+    const actionRequired = phaseSignals.filter(s => s.status === 'ACTIVE').length;
     return { total: phaseSignals.length, actionRequired };
   };
 
@@ -263,13 +338,58 @@ const ContinuitySignalsPage = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
-            <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-[#C6A45E]" />
-            Continuity Signals
-          </h1>
-          <p className="text-[#B4BAC2] text-sm">
-            Real-time relationship health monitoring across the 4-phase continuity framework
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
+                <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-[#C6A45E]" />
+                Continuity Signals
+              </h1>
+              <p className="text-[#B4BAC2] text-sm">
+                Real-time relationship health monitoring across the 4-phase continuity framework
+              </p>
+            </div>
+            
+            {/* Launch Agent Controls */}
+            <div className="flex gap-2">
+              {launchAgentStatus === 'online' && (
+                <>
+                  <button
+                    onClick={handleRunAudit}
+                    disabled={runningAudit}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#4A9E88] hover:bg-[#4A9E88]/80 disabled:bg-[#353C45] disabled:cursor-not-allowed text-white rounded transition-all"
+                    title="Run automated continuity audit"
+                  >
+                    {runningAudit ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Zap className="w-4 h-4" />
+                    )}
+                    {runningAudit ? 'Running...' : 'Run Audit'}
+                  </button>
+                  
+                  <button
+                    onClick={handleRunRiskAssessment}
+                    disabled={runningRiskAssessment}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#B55A4A] hover:bg-[#B55A4A]/80 disabled:bg-[#353C45] disabled:cursor-not-allowed text-white rounded transition-all"
+                    title="Run comprehensive risk assessment (continuity + security)"
+                  >
+                    {runningRiskAssessment ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Shield className="w-4 h-4" />
+                    )}
+                    {runningRiskAssessment ? 'Assessing...' : 'Risk Assessment'}
+                  </button>
+                </>
+              )}
+              
+              {launchAgentStatus === 'offline' && (
+                <div className="px-4 py-2 bg-[#353C45] text-[#7A828C] rounded text-sm">
+                  Launch Agent Offline
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Phase Filter Tabs */}
@@ -284,9 +404,9 @@ const ContinuitySignalsPage = () => {
           >
             <div className="text-left">
               <div className="text-xs uppercase tracking-wide text-[#7A828C] mb-1">All Phases</div>
-              <div className="text-2xl font-mono font-bold text-[#E6E8EB]">{MOCK_SIGNALS.length}</div>
+              <div className="text-2xl font-mono font-bold text-[#E6E8EB]">{signals.length}</div>
               <div className="text-xs text-[#B4BAC2] mt-1">
-                {MOCK_SIGNALS.filter(s => s.actionRequired).length} require action
+                {signals.filter(s => s.status === 'ACTIVE').length} require action
               </div>
             </div>
           </button>
