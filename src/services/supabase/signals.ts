@@ -182,3 +182,97 @@ export async function getSignalCounts(): Promise<{
     return { data: null, error: err as Error };
   }
 }
+
+// =====================================================
+// SIGNALS ENGINE FUNCTIONS
+// =====================================================
+
+/**
+ * Manually trigger signal generation from the database function
+ * Useful for "Refresh" button in the UI
+ */
+export async function triggerSignalGeneration(): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase.rpc('generate_continuity_signals');
+
+    if (error) throw error;
+
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+/**
+ * Update the market interest rate used for refinance opportunity detection
+ */
+export async function updateMarketRate(newRate: number): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase.rpc('update_market_rate', {
+      new_rate: newRate
+    });
+
+    if (error) throw error;
+
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+/**
+ * Map signal types to user-friendly labels
+ */
+export const SIGNAL_TYPE_LABELS: Record<string, string> = {
+  CONTACT_GAP: 'Contact Recency',
+  ENGAGEMENT_DRIFT: 'Engagement Quality',
+  VALUE_RISK: 'Value Opportunity',
+  LIFE_STAGE: 'Life-Stage Transition',
+  SUCCESSION_GAP: 'Succession Readiness'
+};
+
+/**
+ * Map severity to colors (Primus OS Design System)
+ */
+export const SEVERITY_COLORS: Record<SignalSeverity, string> = {
+  RED: '#B55A4A',
+  YELLOW: '#C6A45E',
+  GREEN: '#4A9E88'
+};
+
+/**
+ * Get recommended action for signal type
+ */
+export function getRecommendedAction(signalType: string): string {
+  const actions: Record<string, string> = {
+    CONTACT_GAP: 'Schedule touchpoint call within 48 hours',
+    ENGAGEMENT_DRIFT: 'Immediate intervention - Review relationship strategy',
+    VALUE_RISK: 'Proactive refinance consultation opportunity',
+    LIFE_STAGE: 'Initiate succession planning conversation',
+    SUCCESSION_GAP: 'Document heir/successor relationship'
+  };
+
+  return actions[signalType] || 'Review and take appropriate action';
+}
+
+/**
+ * Subscribe to real-time signal changes
+ */
+export function subscribeToSignals(
+  firmId: string,
+  onSignalChange: (payload: any) => void
+) {
+  return supabase
+    .channel(`signals:${firmId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'continuity_signals',
+        filter: `firm_id=eq.${firmId}`
+      },
+      onSignalChange
+    )
+    .subscribe();
+}

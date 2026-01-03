@@ -18,49 +18,79 @@
 -- ----------------------------------------------------------------------------
 
 -- User roles with granular permissions
-CREATE TYPE user_role AS ENUM ('FOUNDER', 'JUNIOR_AGENT', 'READ_ONLY');
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+    CREATE TYPE user_role AS ENUM ('FOUNDER', 'JUNIOR_AGENT', 'READ_ONLY');
+  END IF;
+END $$;
 
 -- Signal severity levels
-CREATE TYPE signal_severity AS ENUM ('GREEN', 'YELLOW', 'RED');
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'signal_severity') THEN
+    CREATE TYPE signal_severity AS ENUM ('GREEN', 'YELLOW', 'RED');
+  END IF;
+END $$;
 
 -- Baseline report status
-CREATE TYPE baseline_status AS ENUM ('DRAFT', 'FINALIZED', 'ARCHIVED');
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'baseline_status') THEN
+    CREATE TYPE baseline_status AS ENUM ('DRAFT', 'FINALIZED', 'ARCHIVED');
+  END IF;
+END $$;
 
 -- Document categories for Vault
-CREATE TYPE document_category AS ENUM (
-  'SUCCESSION_AGREEMENT',
-  'COMPLIANCE_RECORD',
-  'OPERATIONS_SOP',
-  'LEGAL_ESTATE',
-  'CLIENT_CONTRACT',
-  'OTHER'
-);
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'document_category') THEN
+    CREATE TYPE document_category AS ENUM (
+      'SUCCESSION_AGREEMENT',
+      'COMPLIANCE_RECORD',
+      'OPERATIONS_SOP',
+      'LEGAL_ESTATE',
+      'CLIENT_CONTRACT',
+      'OTHER'
+    );
+  END IF;
+END $$;
 
 -- Governance action types (for approval workflow)
-CREATE TYPE governance_action_type AS ENUM (
-  'DRAFT_CREATED',
-  'DRAFT_SUBMITTED',
-  'DRAFT_APPROVED',
-  'DRAFT_REJECTED',
-  'DRAFT_EXECUTED',
-  'BATCH_CREATED',
-  'BATCH_APPROVED',
-  'CLIENT_ASSIGNED',
-  'CLIENT_REASSIGNED',
-  'BASELINE_CREATED',
-  'SIGNAL_CREATED',
-  'SIGNAL_RESOLVED'
-);
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'governance_action_type') THEN
+    CREATE TYPE governance_action_type AS ENUM (
+      'DRAFT_CREATED',
+      'DRAFT_SUBMITTED',
+      'DRAFT_APPROVED',
+      'DRAFT_REJECTED',
+      'DRAFT_EXECUTED',
+      'BATCH_CREATED',
+      'BATCH_APPROVED',
+      'CLIENT_ASSIGNED',
+      'CLIENT_REASSIGNED',
+      'BASELINE_CREATED',
+      'SIGNAL_CREATED',
+      'SIGNAL_RESOLVED'
+    );
+  END IF;
+END $$;
 
 -- ----------------------------------------------------------------------------
 -- 2. MODIFY EXISTING TABLES
 -- ----------------------------------------------------------------------------
 
+-- Drop views that depend on users.role column (will recreate later)
+DROP VIEW IF EXISTS current_client_assignments CASCADE;
+DROP VIEW IF EXISTS active_signals CASCADE;
+DROP VIEW IF EXISTS latest_baselines CASCADE;
+
 -- Upgrade users table with enhanced roles
-ALTER TABLE users DROP COLUMN IF EXISTS role;
-ALTER TABLE users ADD COLUMN role user_role NOT NULL DEFAULT 'JUNIOR_AGENT';
-ALTER TABLE users ADD COLUMN display_name VARCHAR(255);
-ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE users DROP COLUMN IF EXISTS role CASCADE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role user_role NOT NULL DEFAULT 'JUNIOR_AGENT';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
 
 -- Add founder-dependency tracking to relationships
 ALTER TABLE relationships ADD COLUMN IF NOT EXISTS assigned_agent_id UUID REFERENCES users(id) ON DELETE SET NULL;
@@ -84,7 +114,7 @@ ALTER TABLE governance_batches ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 -- 3. NEW TABLES - CONTINUITY SIGNALS
 -- ----------------------------------------------------------------------------
 
-CREATE TABLE continuity_signals (
+CREATE TABLE IF NOT EXISTS continuity_signals (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE CASCADE,
   relationship_id UUID NOT NULL REFERENCES relationships(id) ON DELETE CASCADE,
@@ -110,17 +140,17 @@ CREATE TABLE continuity_signals (
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_signals_firm_id ON continuity_signals(firm_id);
-CREATE INDEX idx_signals_relationship_id ON continuity_signals(relationship_id);
-CREATE INDEX idx_signals_severity ON continuity_signals(severity);
-CREATE INDEX idx_signals_assigned_to ON continuity_signals(assigned_to);
-CREATE INDEX idx_signals_resolved ON continuity_signals(resolved_at);
+CREATE INDEX IF NOT EXISTS idx_signals_firm_id ON continuity_signals(firm_id);
+CREATE INDEX IF NOT EXISTS idx_signals_relationship_id ON continuity_signals(relationship_id);
+CREATE INDEX IF NOT EXISTS idx_signals_severity ON continuity_signals(severity);
+CREATE INDEX IF NOT EXISTS idx_signals_assigned_to ON continuity_signals(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_signals_resolved ON continuity_signals(resolved_at);
 
 -- ----------------------------------------------------------------------------
 -- 4. NEW TABLES - CLIENT ASSIGNMENTS (SUCCESSION TRACKING)
 -- ----------------------------------------------------------------------------
 
-CREATE TABLE client_assignments (
+CREATE TABLE IF NOT EXISTS client_assignments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE CASCADE,
   relationship_id UUID NOT NULL REFERENCES relationships(id) ON DELETE CASCADE,
@@ -138,16 +168,16 @@ CREATE TABLE client_assignments (
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_assignments_firm_id ON client_assignments(firm_id);
-CREATE INDEX idx_assignments_relationship_id ON client_assignments(relationship_id);
-CREATE INDEX idx_assignments_assigned_to ON client_assignments(assigned_to);
-CREATE INDEX idx_assignments_assigned_at ON client_assignments(assigned_at DESC);
+CREATE INDEX IF NOT EXISTS idx_assignments_firm_id ON client_assignments(firm_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_relationship_id ON client_assignments(relationship_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_assigned_to ON client_assignments(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_assignments_assigned_at ON client_assignments(assigned_at DESC);
 
 -- ----------------------------------------------------------------------------
 -- 5. NEW TABLES - CONTINUITY BASELINE REPORTS
 -- ----------------------------------------------------------------------------
 
-CREATE TABLE baseline_reports (
+CREATE TABLE IF NOT EXISTS baseline_reports (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE CASCADE,
   
@@ -185,15 +215,15 @@ CREATE TABLE baseline_reports (
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_baselines_firm_id ON baseline_reports(firm_id);
-CREATE INDEX idx_baselines_status ON baseline_reports(status);
-CREATE INDEX idx_baselines_created_at ON baseline_reports(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_baselines_firm_id ON baseline_reports(firm_id);
+CREATE INDEX IF NOT EXISTS idx_baselines_status ON baseline_reports(status);
+CREATE INDEX IF NOT EXISTS idx_baselines_created_at ON baseline_reports(created_at DESC);
 
 -- ----------------------------------------------------------------------------
 -- 6. NEW TABLES - GOVERNANCE ACTIONS (IMMUTABLE AUDIT TRAIL)
 -- ----------------------------------------------------------------------------
 
-CREATE TABLE governance_actions (
+CREATE TABLE IF NOT EXISTS governance_actions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE CASCADE,
   
@@ -218,16 +248,16 @@ CREATE TABLE governance_actions (
   occurred_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_actions_firm_id ON governance_actions(firm_id);
-CREATE INDEX idx_actions_entity ON governance_actions(entity_type, entity_id);
-CREATE INDEX idx_actions_performed_by ON governance_actions(performed_by);
-CREATE INDEX idx_actions_occurred_at ON governance_actions(occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_actions_firm_id ON governance_actions(firm_id);
+CREATE INDEX IF NOT EXISTS idx_actions_entity ON governance_actions(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_actions_performed_by ON governance_actions(performed_by);
+CREATE INDEX IF NOT EXISTS idx_actions_occurred_at ON governance_actions(occurred_at DESC);
 
 -- ----------------------------------------------------------------------------
 -- 7. NEW TABLES - AUDIT EVENTS (SYSTEM-LEVEL LOGGING)
 -- ----------------------------------------------------------------------------
 
-CREATE TABLE audit_events (
+CREATE TABLE IF NOT EXISTS audit_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE CASCADE,
   
@@ -250,16 +280,16 @@ CREATE TABLE audit_events (
   occurred_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_audit_firm_id ON audit_events(firm_id);
-CREATE INDEX idx_audit_user_id ON audit_events(user_id);
-CREATE INDEX idx_audit_category ON audit_events(event_category);
-CREATE INDEX idx_audit_occurred_at ON audit_events(occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_firm_id ON audit_events(firm_id);
+CREATE INDEX IF NOT EXISTS idx_audit_user_id ON audit_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_category ON audit_events(event_category);
+CREATE INDEX IF NOT EXISTS idx_audit_occurred_at ON audit_events(occurred_at DESC);
 
 -- ----------------------------------------------------------------------------
 -- 8. NEW TABLES - VAULT (DOCUMENT STORAGE)
 -- ----------------------------------------------------------------------------
 
-CREATE TABLE vault_documents (
+CREATE TABLE IF NOT EXISTS vault_documents (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE CASCADE,
   
@@ -287,11 +317,11 @@ CREATE TABLE vault_documents (
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_vault_firm_id ON vault_documents(firm_id);
-CREATE INDEX idx_vault_category ON vault_documents(category);
-CREATE INDEX idx_vault_uploaded_by ON vault_documents(uploaded_by);
-CREATE INDEX idx_vault_archived ON vault_documents(is_archived);
-CREATE INDEX idx_vault_uploaded_at ON vault_documents(uploaded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_vault_firm_id ON vault_documents(firm_id);
+CREATE INDEX IF NOT EXISTS idx_vault_category ON vault_documents(category);
+CREATE INDEX IF NOT EXISTS idx_vault_uploaded_by ON vault_documents(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_vault_archived ON vault_documents(is_archived);
+CREATE INDEX IF NOT EXISTS idx_vault_uploaded_at ON vault_documents(uploaded_at DESC);
 
 -- ----------------------------------------------------------------------------
 -- 9. ROW LEVEL SECURITY (RLS) - FIRM ISOLATION
@@ -317,6 +347,24 @@ ALTER TABLE vault_documents ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies: Users can only access their firm's data
 -- NOTE: Replace auth.uid() with your Supabase auth implementation
+
+-- Drop existing policies if they exist (idempotent)
+DROP POLICY IF EXISTS firm_isolation ON firms;
+DROP POLICY IF EXISTS user_isolation ON users;
+DROP POLICY IF EXISTS relationship_isolation ON relationships;
+DROP POLICY IF EXISTS interaction_isolation ON interactions;
+DROP POLICY IF EXISTS snapshot_isolation ON continuity_snapshots;
+DROP POLICY IF EXISTS batch_isolation ON governance_batches;
+DROP POLICY IF EXISTS draft_isolation ON outreach_drafts;
+DROP POLICY IF EXISTS event_isolation ON governance_events;
+DROP POLICY IF EXISTS source_isolation ON ledger_sources;
+DROP POLICY IF EXISTS mapping_isolation ON field_mappings;
+DROP POLICY IF EXISTS signal_isolation ON continuity_signals;
+DROP POLICY IF EXISTS assignment_isolation ON client_assignments;
+DROP POLICY IF EXISTS baseline_isolation ON baseline_reports;
+DROP POLICY IF EXISTS action_isolation ON governance_actions;
+DROP POLICY IF EXISTS audit_isolation ON audit_events;
+DROP POLICY IF EXISTS vault_isolation ON vault_documents;
 
 -- Firms: Users can read their own firm
 CREATE POLICY firm_isolation ON firms
@@ -414,14 +462,17 @@ CREATE POLICY vault_isolation ON vault_documents
 -- 10. UPDATED_AT TRIGGERS FOR NEW TABLES
 -- ----------------------------------------------------------------------------
 
+DROP TRIGGER IF EXISTS update_signals_updated_at ON continuity_signals;
 CREATE TRIGGER update_signals_updated_at 
   BEFORE UPDATE ON continuity_signals 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_baselines_updated_at ON baseline_reports;
 CREATE TRIGGER update_baselines_updated_at 
   BEFORE UPDATE ON baseline_reports 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_vault_updated_at ON vault_documents;
 CREATE TRIGGER update_vault_updated_at 
   BEFORE UPDATE ON vault_documents 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
